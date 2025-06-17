@@ -58,6 +58,7 @@ lemma union_two_real (U V : Set X) (hUOpen : IsOpen U) (hVOpen : IsOpen V)
       have h4 : ∀ x ∈ A, ∃ a, (connectedComponent x) = Iio (a) ∨
           ∃ b, (connectedComponent x) = Ioi (b) := by
         intro x hx
+        let Y := (connectedComponent x)
         have h4_1 : ∀ x ∈ A, (connectedComponent x) ∈ ({Icc (sInf (connectedComponent x))
             (sSup (connectedComponent x)), Ico (sInf (connectedComponent x))
             (sSup (connectedComponent x)), Ioc (sInf (connectedComponent x))
@@ -68,6 +69,10 @@ lemma union_two_real (U V : Set X) (hUOpen : IsOpen U) (hVOpen : IsOpen V)
           intro x hx
           have h4_1_1 : IsPreconnected (connectedComponent x) := isPreconnected_connectedComponent
           exact IsPreconnected.mem_intervals h4_1_1
+        apply h4_1 at hx
+        simp only [Set.mem_insert_iff, Set.mem_singleton_iff] at hx
+        have h4_2 : IsOpen Y := isOpen_connectedComponent
+        have h4_3 : ¬ Y = Icc (sInf Y) (sSup Y) := by sorry
         sorry
       -- have h5 : ∀ x ∈ B, (connectedComponent x) ∈ ({Icc (sInf (connectedComponent x))
       --     (sSup (connectedComponent x)), Ico (sInf (connectedComponent x))
