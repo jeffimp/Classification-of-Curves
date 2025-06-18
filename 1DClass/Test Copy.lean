@@ -18,14 +18,14 @@ lemma union_two_real (U V : Set X) (hUOpen : IsOpen U) (hVOpen : IsOpen V)
     Nonempty (Homeomorph X ℝ) ∨ Nonempty (Homeomorph X Circle) := by
   -- Simple cases where U ⊆ V or V ⊆ U
   -- Helper lemma to condense code
-  let simple_homeo (W : Set X) (h_eq : U ∪ V = W) (homeo : Homeomorph W ℝ) : Nonempty (Homeomorph X ℝ) := by
+  let mk_homeo_to_real (W : Set X) (h_eq : U ∪ V = W) (homeo : Homeomorph W ℝ) : Nonempty (Homeomorph X ℝ) := by
     have h_univ : W = Set.univ := by rw [←hCover, h_eq]
     have h_homeo : Homeomorph W X := by rw [h_univ]; exact Homeomorph.Set.univ X
     exact ⟨h_homeo.symm.trans homeo⟩
   by_cases hUV : U ⊆ V
-  · exact Or.inl (simple_homeo V (Set.union_eq_self_of_subset_left hUV) ψ)
+  · exact Or.inl (mk_homeo_to_real V (Set.union_eq_self_of_subset_left hUV) ψ)
   · by_cases hVU : V ⊆ U
-    · exact Or.inl (simple_homeo U (Set.union_eq_self_of_subset_right hVU) φ)
+    · exact Or.inl (mk_homeo_to_real U (Set.union_eq_self_of_subset_right hVU) φ)
     -- Now working with the assumption that ¬ U ⊆ V and ¬ V ⊆ U
     · let A := φ.toFun '' (Subtype.val ⁻¹' (U ∩ V))
       let B := ψ.toFun '' (Subtype.val ⁻¹' (U ∩ V))
@@ -61,7 +61,38 @@ lemma union_two_real (U V : Set X) (hUOpen : IsOpen U) (hVOpen : IsOpen V)
         have h4_2 : IsOpen Y := isOpen_connectedComponent
         -- First prove unbounded?
         have h4_3 : Y.Nonempty := connectedComponent_nonempty
+
+        -- have h4_3 : ¬ Y = Icc (sInf Y) (sSup Y) := by
+        --   -- Suppose for contradiction that `Y = Icc (sInf Y) (sSup Y)`.
+        --   intro h_eq
+        --   -- Since `Y` is open, we have `interior Y = Y`.
+        --   have h_int : interior Y = Y := interior_eq_iff_isOpen.mpr h4_2
+        --   -- Rewrite this equality for `Icc (sInf Y) (sSup Y)` using the hypothesis `h_eq`.
+        --   have : interior (Icc (sInf Y) (sSup Y)) = Icc (sInf Y) (sSup Y) := by rw [← h_eq, h_int]
+        --   -- But in an order topology, the interior of a closed interval is the corresponding open interval.
+        --   rw [interior_Icc] at this  -- Now we have `Ioo (sInf Y) (sSup Y) = Icc (sInf Y) (sSup Y)`.
+        --   -- In particular, `sInf Y` lies in the right-hand side, so also in the left.
+        --   have finf_mem : sInf Y ∈ Ioo (sInf Y) (sSup Y) := by
+        --     -- From the equality, `mem` on `Icc` gives membership on `Ioo`, but `sInf Y` cannot be in `Ioo`.
+        --     rw [this]
+        --     apply mem_Icc.2
+        --     constructor
+        --     · exact Preorder.le_refl (sInf Y)
+        --     · sorry
+        --   sorry
         sorry
+      -- have h5 : ∀ x ∈ B, (connectedComponent x) ∈ ({Icc (sInf (connectedComponent x))
+      --     (sSup (connectedComponent x)), Ico (sInf (connectedComponent x))
+      --     (sSup (connectedComponent x)), Ioc (sInf (connectedComponent x))
+      --     (sSup (connectedComponent x)), Ioo (sInf (connectedComponent x))
+      --     (sSup (connectedComponent x)), Ici (sInf (connectedComponent x)),
+      --     Ioi (sInf (connectedComponent x)), Iic (sSup (connectedComponent x)),
+      --     Iio (sSup (connectedComponent x)), univ, ∅} : Set (Set ℝ)) := by
+      --   intro x hx
+      --   have h5_1 : IsPreconnected (connectedComponent x) := isPreconnected_connectedComponent
+      --   exact IsPreconnected.mem_intervals h5_1
+      -- Eliminating closed intervals, bounded intervals, ℝ and ∅
+
       sorry
 
 example (p q : Prop) (h1 : p ∨ q) (h2 : ¬ p) : q := by
