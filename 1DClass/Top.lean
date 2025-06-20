@@ -4,8 +4,20 @@ Author: Jeff Lee
 -/
 import Mathlib.Tactic -- import all the tactics
 import Mathlib.Analysis.Complex.Circle
+import «1DClass».Test
 
 open Set
+
+-- /- A non-empty proper set in ℝ cannot be both open and closed. -/
+-- lemma open_not_closed (A B : Set ℝ) (hAOpen : IsOpen A) (hBClosed : IsClosed B)
+--     (hANonempty : A.Nonempty) (hAProper : A ≠ univ) : A ≠ B := by
+--   intro h
+--   rw [←h] at hBClosed
+--   have hAClopen : IsClopen A := ⟨hBClosed, hAOpen⟩
+--   have hClopen : A = ∅ ∨ A = univ := by exact isClopen_iff.mp hAClopen
+--   cases' hClopen with hEmp hUniv
+--   · exact hANonempty.ne_empty hEmp
+--   · exact hAProper hUniv
 
 /- X is a connected Hausdorff space -/
 variable (X : Type*) [TopologicalSpace X] [ConnectedSpace X] [T2Space X]
@@ -30,37 +42,47 @@ lemma union_two_real (U V : Set X) (hUOpen : IsOpen U) (hVOpen : IsOpen V)
     · let A := φ.toFun '' (Subtype.val ⁻¹' (U ∩ V))
       let B := ψ.toFun '' (Subtype.val ⁻¹' (U ∩ V))
       -- φ(U ∩ V) and ψ(U ∩ V) are open in ℝ
-      have h1 : IsOpen (U ∩ V) :=  IsOpen.inter hUOpen hVOpen
-      have h2 : IsOpen A := by
+      have hUVOpen : IsOpen (U ∩ V) :=  IsOpen.inter hUOpen hVOpen
+      have hAOpen : IsOpen A := by
         have h2_1 : IsOpen ((@Subtype.val X U) ⁻¹' (U ∩ V)) := by
-          exact isOpen_induced h1
+          exact isOpen_induced hUVOpen
         have h2_2 : IsOpenMap φ.toFun := Homeomorph.isOpenMap φ
         exact h2_2 (Subtype.val ⁻¹' (U ∩ V)) h2_1
-      have h3 : IsOpen B := by
+      have hBOpen : IsOpen B := by
         have h3_1 : IsOpen ((@Subtype.val X V) ⁻¹' (U ∩ V)) := by
-          exact isOpen_induced h1
+          exact isOpen_induced hUVOpen
         have h3_2 : IsOpenMap ψ.toFun := Homeomorph.isOpenMap ψ
         exact h3_2 (Subtype.val ⁻¹' (U ∩ V)) h3_1
       -- Components of φ(U ∩ V) and ψ(U ∩ V) are intervals
-      have h4 : ∀ x ∈ A, ∃ a, (connectedComponent x) = Iio (a) ∨
+      have hRClass : ∀ x ∈ A, ∃ a, (connectedComponent x) = Iio (a) ∨
           ∃ b, (connectedComponent x) = Ioi (b) := by
         intro x hx
         let Y := (connectedComponent x)
-        have h4_1 : ∀ x ∈ A, (connectedComponent x) ∈ ({Icc (sInf (connectedComponent x))
-            (sSup (connectedComponent x)), Ico (sInf (connectedComponent x))
-            (sSup (connectedComponent x)), Ioc (sInf (connectedComponent x))
-            (sSup (connectedComponent x)), Ioo (sInf (connectedComponent x))
-            (sSup (connectedComponent x)), Ici (sInf (connectedComponent x)),
-            Ioi (sInf (connectedComponent x)), Iic (sSup (connectedComponent x)),
-            Iio (sSup (connectedComponent x)), univ, ∅} : Set (Set ℝ)) := by
-          intro x hx
-          have h4_1_1 : IsPreconnected (connectedComponent x) := isPreconnected_connectedComponent
-          exact IsPreconnected.mem_intervals h4_1_1
-        apply h4_1 at hx
+        have hRClassInt : ∀ y ∈ A, (connectedComponent y) ∈ ({Icc (sInf (connectedComponent y))
+            (sSup (connectedComponent y)), Ico (sInf (connectedComponent y))
+            (sSup (connectedComponent y)), Ioc (sInf (connectedComponent y))
+            (sSup (connectedComponent y)), Ioo (sInf (connectedComponent y))
+            (sSup (connectedComponent y)), Ici (sInf (connectedComponent y)),
+            Ioi (sInf (connectedComponent y)), Iic (sSup (connectedComponent y)),
+            Iio (sSup (connectedComponent y)), univ, ∅} : Set (Set ℝ)) := by
+          intro y hy
+          have hPrecon : IsPreconnected (connectedComponent y) := isPreconnected_connectedComponent
+          exact IsPreconnected.mem_intervals hPrecon
+        apply hRClassInt at hx
         simp only [Set.mem_insert_iff, Set.mem_singleton_iff] at hx
-        have h4_2 : IsOpen Y := isOpen_connectedComponent
+        have hYOpen : IsOpen Y := isOpen_connectedComponent
         -- First prove unbounded?
-        have h4_3 : Y.Nonempty := connectedComponent_nonempty
+        have hYNonempty : Y.Nonempty := connectedComponent_nonempty
+        have hYProper : Y ≠ univ := by sorry
+        have hYnotIcc : Y ≠ Icc (sInf Y) (sSup Y) := by
+          have hIccClosed : IsClosed (Icc (sInf Y) (sSup Y)) := isClosed_Icc
+          exact open_not_closed Y (Icc (sInf Y) (sSup Y)) hYOpen hIccClosed hYNonempty hYProper
+        have hYnotIci : Y ≠ Ici (sInf Y) := by
+          have hIciClosed : IsClosed (Ici (sInf Y)) := isClosed_Ici
+          exact open_not_closed Y (Ici (sInf Y)) hYOpen hIciClosed hYNonempty hYProper
+        have hYnotIic : Y ≠ Iic (sSup Y) := by
+          have hIicClosed : IsClosed (Iic (sSup Y)) := isClosed_Iic
+          exact open_not_closed Y (Iic (sSup Y)) hYOpen hIicClosed hYNonempty hYProper
         sorry
       sorry
 
