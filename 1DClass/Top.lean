@@ -4,7 +4,7 @@ Author: Jeff Lee
 -/
 import Mathlib.Tactic -- import all the tactics
 import Mathlib.Analysis.Complex.Circle
-import «1DClass».Test
+import «1DClass».RealClass
 
 open Set
 
