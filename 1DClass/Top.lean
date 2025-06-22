@@ -38,6 +38,7 @@ lemma union_two_real (U V : Set X) (hUOpen : IsOpen U) (hVOpen : IsOpen V)
   · exact Or.inl (simple_homeo V (Set.union_eq_self_of_subset_left hUV) ψ)
   · by_cases hVU : V ⊆ U
     · exact Or.inl (simple_homeo U (Set.union_eq_self_of_subset_right hVU) φ)
+
     -- Now working with the assumption that ¬ U ⊆ V and ¬ V ⊆ U
     · let A := φ.toFun '' (Subtype.val ⁻¹' (U ∩ V))
       let B := ψ.toFun '' (Subtype.val ⁻¹' (U ∩ V))
@@ -53,6 +54,56 @@ lemma union_two_real (U V : Set X) (hUOpen : IsOpen U) (hVOpen : IsOpen V)
           exact isOpen_induced hUVOpen
         have h3_2 : IsOpenMap ψ.toFun := Homeomorph.isOpenMap ψ
         exact h3_2 (Subtype.val ⁻¹' (U ∩ V)) h3_1
+
+      have hUNonempty : U.Nonempty := by sorry
+
+      -- φ(U ∩ V) is not a proper set i.e. φ(U ∩ V) ≠ ℝ
+      have hAProper : A ≠ univ := by
+        have hVnX : V ≠ (univ : Set X) := by
+          simp_all only [Equiv.toFun_as_coe, Homeomorph.coe_toEquiv, preimage_inter, Subtype.coe_preimage_self,
+            univ_inter, Homeomorph.isOpen_image, IsOpen.inter_preimage_val_iff, inter_univ, ne_eq, A, B]
+          apply Aesop.BuiltinRules.not_intro
+          intro a
+          subst a
+          simp_all only [isOpen_univ, subset_univ, not_true_eq_false]
+        have hxnV : ∃ x ∈ (univ : Set X), x ∉ V := by
+          simp only [mem_univ, true_and]
+          exact not_forall.mp fun a ↦ hUV fun ⦃a_1⦄ a_2 ↦ a a_1
+        have hxUnUV : ∃ x ∈ U, x ∉ (U ∩ V) := by
+          obtain ⟨x, hx⟩ := hxnV
+          simp only [mem_inter_iff, not_and, B, A]
+          use x
+          constructor
+          · have hxUV : x ∈ U ∪ V := by
+              simp_all only [Equiv.toFun_as_coe, Homeomorph.coe_toEquiv, preimage_inter, Subtype.coe_preimage_self,
+                univ_inter, Homeomorph.isOpen_image, IsOpen.inter_preimage_val_iff, inter_univ, ne_eq, mem_univ,
+                true_and, B, A]
+            exact hxUV.resolve_right hx.2
+          · intro hxU
+            exact hx.2
+        have hUVnV : U ∩ V ≠ U := by
+          simp_all only [Equiv.toFun_as_coe, Homeomorph.coe_toEquiv, preimage_inter, Subtype.coe_preimage_self,
+            univ_inter, Homeomorph.isOpen_image, IsOpen.inter_preimage_val_iff, inter_univ, ne_eq, mem_univ, true_and,
+            mem_inter_iff, not_and, inter_eq_left, not_false_eq_true, B, A]
+        have hφUV : A = φ.toFun '' (Subtype.val ⁻¹' (U ∩ V)) := rfl
+        have hφU : (univ : Set ℝ) = φ.toFun '' (Subtype.val ⁻¹' (U)) := by
+          simp only [Equiv.toFun_as_coe,
+            Homeomorph.coe_toEquiv, Subtype.coe_preimage_self, image_univ, EquivLike.range_eq_univ, B, A]
+        rw [hφUV, hφU]
+        -- simp only [Equiv.toFun_as_coe, Homeomorph.coe_toEquiv, preimage_inter, Subtype.coe_preimage_self, univ_inter, image_univ, EquivLike.range_eq_univ, ne_eq, B, A]
+        by_contra h
+        -- Proving injectivity of φ (considering Subtype complications as well)
+        have hφSubInj : Function.Injective (fun p ↦ φ.toFun '' (Subtype.val ⁻¹' (p))) := by
+          simp only [Equiv.toFun_as_coe, Homeomorph.coe_toEquiv, B, A]
+          intros p q hpq
+          have hφInj : Function.Injective φ.toFun := φ.injective
+          have hSubEq : (Subtype.val ⁻¹' p : Set ↑U) = (Subtype.val ⁻¹' q : Set ↑U) := (image_eq_image hφInj).mp hpq
+          -- TODO: Prove injectivity of Subtype.val pre-image
+          sorry
+        have hcontra : U ∩ V = U := by
+          sorry
+        exact hUVnV (hφSubInj h)
+
       -- Components of φ(U ∩ V) and ψ(U ∩ V) are intervals
       have hRClass : ∀ x ∈ A, ∃ a, (connectedComponent x) = Iio (a) ∨
           ∃ b, (connectedComponent x) = Ioi (b) := by
@@ -73,7 +124,7 @@ lemma union_two_real (U V : Set X) (hUOpen : IsOpen U) (hVOpen : IsOpen V)
         have hYOpen : IsOpen Y := isOpen_connectedComponent
         -- First prove unbounded?
         have hYNonempty : Y.Nonempty := connectedComponent_nonempty
-        have hYProper : Y ≠ univ := by sorry
+        have hYProper : Y ≠ univ := sorry
         have hYnotIcc : Y ≠ Icc (sInf Y) (sSup Y) := by
           have hIccClosed : IsClosed (Icc (sInf Y) (sSup Y)) := isClosed_Icc
           exact open_not_closed Y (Icc (sInf Y) (sSup Y)) hYOpen hIccClosed hYNonempty hYProper
@@ -85,42 +136,3 @@ lemma union_two_real (U V : Set X) (hUOpen : IsOpen U) (hVOpen : IsOpen V)
           exact open_not_closed Y (Iic (sSup Y)) hYOpen hIicClosed hYNonempty hYProper
         sorry
       sorry
-
-example (p q : Prop) (h1 : p ∨ q) (h2 : ¬ p) : q := by
-  cases h1 with
-  | inl hp => contradiction
-  | inr hq => exact hq
-
-variable {α : Type u} {β : Type v} {γ : Type w} [ConditionallyCompleteLinearOrder α]
-  [TopologicalSpace α] [OrderTopology α] [ConditionallyCompleteLinearOrder β] [TopologicalSpace β]
-  [OrderTopology β] [Nonempty γ]
-
-theorem interval_test {s : Set α} (hs : IsPreconnected s) :
-    s ∈
-      ({Icc (sInf s) (sSup s), Ico (sInf s) (sSup s), Ioc (sInf s) (sSup s), Ioo (sInf s) (sSup s),
-          Ici (sInf s), Ioi (sInf s), Iic (sSup s), Iio (sSup s), univ, ∅} : Set (Set α)) := by
-  rcases s.eq_empty_or_nonempty with (rfl | hne)
-  · apply_rules [Or.inr, mem_singleton]
-  have hs' : IsConnected s := ⟨hne, hs⟩
-  by_cases hb : BddBelow s <;> by_cases ha : BddAbove s
-  · refine mem_of_subset_of_mem ?_ <| mem_Icc_Ico_Ioc_Ioo_of_subset_of_subset
-      (hs'.Ioo_csInf_csSup_subset hb ha) (subset_Icc_csInf_csSup hb ha)
-    simp only [insert_subset_iff, mem_insert_iff, mem_singleton_iff, true_or, or_true,
-      singleton_subset_iff, and_self]
-  · refine Or.inr <| Or.inr <| Or.inr <| Or.inr ?_
-    cases'
-      mem_Ici_Ioi_of_subset_of_subset (hs.Ioi_csInf_subset hb ha) fun x hx => csInf_le hb hx with
-      hs hs
-    · exact Or.inl hs
-    · exact Or.inr (Or.inl hs)
-  · iterate 6 apply Or.inr
-    cases' mem_Iic_Iio_of_subset_of_subset (hs.Iio_csSup_subset hb ha) fun x hx => le_csSup ha hx
-      with hs hs
-    · exact Or.inl hs
-    · exact Or.inr (Or.inl hs)
-  · iterate 8 apply Or.inr
-    exact Or.inl (hs.eq_univ_of_unbounded hb ha)
-
-lemma test_lemma (p q : Prop) (h : p) : p ∨ q := by
-  (constructor ; exact h)
-  -- constructor <;> exact h
