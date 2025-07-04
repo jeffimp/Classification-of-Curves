@@ -1,6 +1,5 @@
 /-
-Formalization of the Classification of Curves
-Author: Jeff Lee
+Classification of connected open sets in ℝ.
 -/
 import Mathlib.Tactic -- import all the tactics
 

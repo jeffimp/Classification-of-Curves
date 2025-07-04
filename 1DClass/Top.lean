@@ -64,30 +64,6 @@ lemma real_cover (φ ψ : PartialHomeomorph X ℝ) (hCover : φ.source ∪ ψ.so
       have hBOpen : IsOpen B := by
         have hUVsym : ψ.source ∩ φ.source = φ.source ∩ ψ.source := inter_comm ψ.source φ.source
         have hB : B = ψ '' (ψ.source ∩ φ.source) := by simp_all only [B]
-          -- simp_all only [A, B]
-          -- ext x : 1
-          -- simp_all only [mem_image, mem_inter_iff]
-          -- apply Iff.intro
-          -- · intro a
-          --   obtain ⟨w, h⟩ := a
-          --   obtain ⟨left, right⟩ := h
-          --   obtain ⟨left, right_1⟩ := left
-          --   subst right
-          --   apply Exists.intro
-          --   · apply And.intro
-          --     on_goal 2 => {rfl
-          --     }
-          --     · simp_all only [and_self]
-          -- · intro a
-          --   obtain ⟨w, h⟩ := a
-          --   obtain ⟨left, right⟩ := h
-          --   obtain ⟨left, right_1⟩ := left
-          --   subst right
-          --   apply Exists.intro
-          --   · apply And.intro
-          --     on_goal 2 => {rfl
-          --     }
-          --     · simp_all only [and_self]
         have hBOpen' : IsOpen (ψ '' (ψ.source ∩ φ.source)) := PartialHomeomorph.isOpen_image_source_inter ψ hUOpen
         simp_all only [A, B]
 
@@ -139,25 +115,30 @@ lemma real_cover (φ ψ : PartialHomeomorph X ℝ) (hCover : φ.source ∪ ψ.so
           exact hVU hC''
         exact Ne.symm (Lean.Grind.ne_of_ne_of_eq_left (id (Eq.symm hψV)) (id (Ne.symm hProper)))
 
-      -- A and B induced subspace topology
-      -- have hATop : TopologicalSpace A := by exact instTopologicalSpaceSubtype
-      -- have hBTop : TopologicalSpace B := by exact instTopologicalSpaceSubtype
-
-      -- have hRClass : ∀ (x : A), ∃ a, (connectedComponent x) = Iio a ∨ ∃ b, (connectedComponent x) = Ioi b := by
-      --   -- Careful with types
-      --   intro x
-      --   let Y := (connectedComponent x)
-      --   let Y' := Subtype.val '' Y
-      --   have hY'Proper : Y' ≠ univ := by
-      --     intro h
-      --     have hY'SubA : Y' ⊆ A :=  Subtype.coe_image_subset A Y
-      --     rw [h] at hY'SubA
-      --     have hAUniv : A = univ := eq_univ_of_univ_subset hY'SubA
-      --     exact hAProper hAUniv
-
-      --   -- Why does isOpen_connectedComponent fail? - Why LocallyConnectedSpace issue instead of connectedComponent issue?
-      --   have hY'Open : IsOpen Y' := by
-      --     sorry -- exact isOpen_connectedComponent
+      -- U and V are connected (to be used in clopen argument below)
+      have hRCon : IsConnected (univ : Set ℝ) := by exact isConnected_univ
+      have hVCon : IsConnected ψ.source := by
+        have hψHomeo : Homeomorph ψ.source ψ.target := ψ.toHomeomorphSourceTarget
+        have hψTCon : IsConnected ψ.target := by
+          rw [hψ]
+          exact hRCon
+        -- exact hψHomeo.isConnected_image.mpr hTargetCon
+        -- have hT : ψ.target = hψHomeo.toFun '' (ψ.source) := by
+        have hψTCon' : ConnectedSpace ψ.target := isConnected_iff_connectedSpace.mp hψTCon
+        have hψTCon'' : IsConnected (univ : Set ψ.target) := isConnected_univ
+        have hψSCon : IsConnected (univ : Set ψ.source) := (Homeomorph.isConnected_preimage (id hψHomeo.symm)).mp hψTCon''
+        have hψSCon' : ConnectedSpace ψ.source := connectedSpace_iff_univ.mpr hψSCon
+        exact isConnected_iff_connectedSpace.mpr hψSCon'
+      have hUCon : IsConnected φ.source := by
+        have hφHomeo : Homeomorph φ.source φ.target := φ.toHomeomorphSourceTarget
+        have hφTCon : IsConnected φ.target := by
+          rw [hφ]
+          exact hRCon
+        have hφTCon' : ConnectedSpace φ.target := isConnected_iff_connectedSpace.mp hφTCon
+        have hφTCon'' : IsConnected (univ : Set φ.target) := isConnected_univ
+        have hφSCon : IsConnected (univ : Set φ.source) := (Homeomorph.isConnected_preimage (id hφHomeo.symm)).mp hφTCon''
+        have hφSCon' : ConnectedSpace φ.source := connectedSpace_iff_univ.mpr hφSCon
+        exact isConnected_iff_connectedSpace.mpr hφSCon'
 
       have hRClassA : ∀ x ∈ A, (∃ a b, (connectedComponentIn A x) = Ioo a b) ∨ (∃ a, (connectedComponentIn A x) = Iio a) ∨ (∃ b, (connectedComponentIn A x) = Ioi b) := by
         intro x hx
@@ -208,151 +189,60 @@ lemma real_cover (φ ψ : PartialHomeomorph X ℝ) (hCover : φ.source ∪ ψ.so
         obtain hRC := real_class Y hYOpen hYCon
         simp only [hYProper, or_false] at hRC
 
-        rcases hRC with (h1 | h2 | h3 )
-        · -- Difficult case: proving that connected components of A are unbounded:
+        rcases hRC with (hBounded | hIio | hIoi )
+        · -- Difficult case: proving that connected components of A are unbounded
           exfalso
-          sorry
+
+          let Z := φ.symm '' (Y)
+          have hZsubV : Z ⊆ ψ.source := by sorry
+          obtain ⟨a, b, hInt⟩ := hBounded
+          have hZ : Z = φ.symm '' (Ioo a b) := by simp_all only [ne_eq, inter_eq_right, not_false_eq_true, mem_image,
+            mem_inter_iff, forall_exists_index, and_imp, A, B, Y, Z]
+          -- Specify that Z is closed in V instead of X!
+          have hZClosed : IsClosed Z := by
+            -- have hZClosed' : Z = φ.symm '' (Icc a b)
+            sorry
+          have hZOpen : IsOpen Z := by sorry
+          have hZV : ψ.source = Z := by sorry
+          have hVsubU : ψ.source ⊆ φ.source := by sorry
+          exact hVU hVsubU
+
         · left
-          exact h2
+          exact hIio
         · right
-          exact h3
+          exact hIoi
 
-      sorry
+      have hRClassA'' : (∃ a_1, A = Iio a_1) ∨ (∃ a_2, A = Ioi a_2) ∨ (∃ a_3 a_4, (a_3 < a_4) ∧ B = (Iio a_3) ∪ (Ioi a_4)):= by sorry
+      have hRClassB'' : (∃ b_1, B = Iio b_1) ∨ (∃ b_2, B = Ioi b_2) ∨ (∃ b_3 b_4, (b_3 < b_4) ∧ B = (Iio b_3) ∪ (Ioi b_4)) := by sorry
 
+      -- have hMono : StrictMono (ψ ∘ φ.symm) ∨ StrictAnti (ψ ∘ φ.symm) := by
+      --   apply Continuous.strictMono_of_inj
+      --   · apply Continuous.comp
+      --     · exact ψ.continuousOn.continuousAt
+      --       sorry
+      --     · exact φ.continuousOn.continuousAt
+      --       sorry
+      --   · sorry
 
-
-
-/- Attempt #1 (Uses Homeomorph and connectedComponent structures instead of PartialHomeomorph and connectedComponentIn) -/
-lemma union_two_real (U V : Set X) (hUOpen : IsOpen U) (hVOpen : IsOpen V)
-    (hCover : U ∪ V = (Set.univ : Set X)) (φ : Homeomorph U ℝ) (ψ : Homeomorph V ℝ) :
-    Nonempty (Homeomorph X ℝ) ∨ Nonempty (Homeomorph X Circle) := by
-  -- Simple cases where U ⊆ V or V ⊆ U
-  -- Helper lemma to condense code
-  -- let simple_homeo (W : Set X) (h_eq : U ∪ V = W) (homeo : Homeomorph W ℝ) : Nonempty (Homeomorph X ℝ) := by
-  --   have h_univ : W = Set.univ := by rw [←hCover, h_eq]
-  --   have h_homeo : Homeomorph W X := by rw [h_univ]; exact Homeomorph.Set.univ X
-  --   exact ⟨h_homeo.symm.trans homeo⟩
-  -- by_cases hUV : U ⊆ V
-  -- · exact Or.inl (simple_homeo V (Set.union_eq_self_of_subset_left hUV) ψ)
-  -- · by_cases hVU : V ⊆ U
-  --   · exact Or.inl (simple_homeo U (Set.union_eq_self_of_subset_right hVU) φ)
-  by_cases hUV : U ⊆ V
-  · have h1 : U ∪ V = V := Set.union_eq_self_of_subset_left hUV
-    rw [h1] at hCover
-    have h2 : Homeomorph V X := by
-      rw [hCover]
-      exact Homeomorph.Set.univ X
-    have h3 : X ≃ₜ ℝ := by
-      exact (id h2.symm).trans ψ
-    have h4 : Nonempty (X ≃ₜ ℝ) := by
-      exact Nonempty.intro h3
-    exact Or.symm (Or.inr h4)
-  · by_cases hVU : V ⊆ U
-    · have h1 : U ∪ V = U := Set.union_eq_self_of_subset_right hVU
-      rw [h1] at hCover
-      have h2 : Homeomorph U X := by
-        rw [hCover]
-        exact Homeomorph.Set.univ X
-      have h3 : X ≃ₜ ℝ := by
-        exact (id h2.symm).trans φ
-      have h4 : Nonempty (X ≃ₜ ℝ) := by
-        exact Nonempty.intro h3
-      exact Or.symm (Or.inr h4)
-
-    -- Now working with the assumption that ¬ U ⊆ V and ¬ V ⊆ U
-    · let A := φ.toFun '' (Subtype.val ⁻¹' (U ∩ V))
-      let B := ψ.toFun '' (Subtype.val ⁻¹' (U ∩ V))
-      -- φ(U ∩ V) and ψ(U ∩ V) are open in ℝ
-      have hUVOpen : IsOpen (U ∩ V) :=  IsOpen.inter hUOpen hVOpen
-      have hAOpen : IsOpen A := by
-        have h2_1 : IsOpen ((@Subtype.val X U) ⁻¹' (U ∩ V)) := by
-          exact isOpen_induced hUVOpen
-        have h2_2 : IsOpenMap φ.toFun := Homeomorph.isOpenMap φ
-        exact h2_2 (Subtype.val ⁻¹' (U ∩ V)) h2_1
-      have hBOpen : IsOpen B := by
-        have h3_1 : IsOpen ((@Subtype.val X V) ⁻¹' (U ∩ V)) := by
-          exact isOpen_induced hUVOpen
-        have h3_2 : IsOpenMap ψ.toFun := Homeomorph.isOpenMap ψ
-        exact h3_2 (Subtype.val ⁻¹' (U ∩ V)) h3_1
-
-      have hUNonempty : U.Nonempty := by sorry
-
-      -- φ(U ∩ V) is not a proper set i.e. φ(U ∩ V) ≠ ℝ
-      have hAProper : A ≠ univ := by
-        have hVnX : V ≠ (univ : Set X) := by
-          simp_all only [Equiv.toFun_as_coe, Homeomorph.coe_toEquiv, preimage_inter, Subtype.coe_preimage_self,
-            univ_inter, Homeomorph.isOpen_image, IsOpen.inter_preimage_val_iff, inter_univ, ne_eq, A, B]
-          apply Aesop.BuiltinRules.not_intro
-          intro a
-          subst a
-          simp_all only [isOpen_univ, subset_univ, not_true_eq_false]
-        have hxnV : ∃ x ∈ (univ : Set X), x ∉ V := by
-          simp only [mem_univ, true_and]
-          exact not_forall.mp fun a ↦ hUV fun ⦃a_1⦄ a_2 ↦ a a_1
-        have hxUnUV : ∃ x ∈ U, x ∉ (U ∩ V) := by
-          obtain ⟨x, hx⟩ := hxnV
-          simp only [mem_inter_iff, not_and, B, A]
-          use x
-          constructor
-          · have hxUV : x ∈ U ∪ V := by
-              simp_all only [Equiv.toFun_as_coe, Homeomorph.coe_toEquiv, preimage_inter, Subtype.coe_preimage_self,
-                univ_inter, Homeomorph.isOpen_image, IsOpen.inter_preimage_val_iff, inter_univ, ne_eq, mem_univ,
-                true_and, B, A]
-            exact hxUV.resolve_right hx.2
-          · intro hxU
-            exact hx.2
-        have hUVnV : U ∩ V ≠ U := by
-          simp_all only [Equiv.toFun_as_coe, Homeomorph.coe_toEquiv, preimage_inter, Subtype.coe_preimage_self,
-            univ_inter, Homeomorph.isOpen_image, IsOpen.inter_preimage_val_iff, inter_univ, ne_eq, mem_univ, true_and,
-            mem_inter_iff, not_and, inter_eq_left, not_false_eq_true, B, A]
-        have hφUV : A = φ.toFun '' (Subtype.val ⁻¹' (U ∩ V)) := rfl
-        have hφU : (univ : Set ℝ) = φ.toFun '' (Subtype.val ⁻¹' (U)) := by
-          simp only [Equiv.toFun_as_coe,
-            Homeomorph.coe_toEquiv, Subtype.coe_preimage_self, image_univ, EquivLike.range_eq_univ, B, A]
-        rw [hφUV, hφU]
-        -- simp only [Equiv.toFun_as_coe, Homeomorph.coe_toEquiv, preimage_inter, Subtype.coe_preimage_self, univ_inter, image_univ, EquivLike.range_eq_univ, ne_eq, B, A]
-        by_contra h
-        -- Proving injectivity of φ (considering Subtype complications as well)
-        have hφSubInj : Function.Injective (fun p ↦ φ.toFun '' (Subtype.val ⁻¹' (p))) := by
-          simp only [Equiv.toFun_as_coe, Homeomorph.coe_toEquiv, B, A]
-          intros p q hpq
-          have hφInj : Function.Injective φ.toFun := φ.injective
-          have hSubEq : (Subtype.val ⁻¹' p : Set ↑U) = (Subtype.val ⁻¹' q : Set ↑U) := (image_eq_image hφInj).mp hpq
-          -- TODO: Prove injectivity of Subtype.val pre-image
-          sorry
-        have hcontra : U ∩ V = U := by
-          sorry
-        exact hUVnV (hφSubInj h)
-
-      -- Components of φ(U ∩ V) and ψ(U ∩ V) are intervals
-      have hRClass : ∀ x ∈ A, ∃ a, (connectedComponent x) = Iio (a) ∨
-          ∃ b, (connectedComponent x) = Ioi (b) := by
-        intro x hx
-        let Y := (connectedComponent x)
-        have hRClassInt : ∀ y ∈ A, (connectedComponent y) ∈ ({Icc (sInf (connectedComponent y))
-            (sSup (connectedComponent y)), Ico (sInf (connectedComponent y))
-            (sSup (connectedComponent y)), Ioc (sInf (connectedComponent y))
-            (sSup (connectedComponent y)), Ioo (sInf (connectedComponent y))
-            (sSup (connectedComponent y)), Ici (sInf (connectedComponent y)),
-            Ioi (sInf (connectedComponent y)), Iic (sSup (connectedComponent y)),
-            Iio (sSup (connectedComponent y)), univ, ∅} : Set (Set ℝ)) := by
-          intro y hy
-          have hPrecon : IsPreconnected (connectedComponent y) := isPreconnected_connectedComponent
-          exact IsPreconnected.mem_intervals hPrecon
-        apply hRClassInt at hx
-        simp only [Set.mem_insert_iff, Set.mem_singleton_iff] at hx
-        have hYOpen : IsOpen Y := isOpen_connectedComponent
-        -- First prove unbounded?
-        have hYNonempty : Y.Nonempty := connectedComponent_nonempty
-        have hYProper : Y ≠ univ := sorry
-        have hYnotIcc : Y ≠ Icc (sInf Y) (sSup Y) := by
-          have hIccClosed : IsClosed (Icc (sInf Y) (sSup Y)) := isClosed_Icc
-          exact open_not_closed Y (Icc (sInf Y) (sSup Y)) hYOpen hIccClosed hYNonempty hYProper
-        have hYnotIci : Y ≠ Ici (sInf Y) := by
-          have hIciClosed : IsClosed (Ici (sInf Y)) := isClosed_Ici
-          exact open_not_closed Y (Ici (sInf Y)) hYOpen hIciClosed hYNonempty hYProper
-        have hYnotIic : Y ≠ Iic (sSup Y) := by
-          have hIicClosed : IsClosed (Iic (sSup Y)) := isClosed_Iic
-          exact open_not_closed Y (Iic (sSup Y)) hYOpen hIicClosed hYNonempty hYProper
+      have hMono' : StrictMonoOn (ψ ∘ φ.symm) (φ.target) ∨ StrictAntiOn (ψ ∘ φ.symm) (φ.target) := by
+        have hψCont : ContinuousOn ψ (ψ.source) := by exact PartialHomeomorph.continuousOn ψ
+        have hUVsubV : ψ.source ∩ φ.source ⊆ φ.source := by exact inter_subset_right
+        have hψCont' : ContinuousOn ψ (ψ.source ∩ φ.source) := by
+          apply ContinuousOn.mono hψCont
+          exact inter_subset_left
         sorry
-      sorry
+
+      rcases hRClassA'' with (hAIio | hAIoi | hAUnion)
+      · rcases hRClassB'' with (hBIio | hBIoi | hBUnion)
+        ·
+          sorry
+        · sorry
+        · sorry
+      · rcases hRClassB'' with (hBIio | hBIoi | hBUnion)
+        · sorry
+        · sorry
+        · sorry
+      · rcases hRClassB'' with (hBIio | hBIoi | hBUnion)
+        · sorry
+        · sorry
+        · sorry
