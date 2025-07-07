@@ -8,17 +8,6 @@ import «1DClass».RealClass
 
 open Set Function
 
--- /- A non-empty proper set in ℝ cannot be both open and closed. -/
--- lemma open_not_closed (A B : Set ℝ) (hAOpen : IsOpen A) (hBClosed : IsClosed B)
---     (hANonempty : A.Nonempty) (hAProper : A ≠ univ) : A ≠ B := by
---   intro h
---   rw [←h] at hBClosed
---   have hAClopen : IsClopen A := ⟨hBClosed, hAOpen⟩
---   have hClopen : A = ∅ ∨ A = univ := by exact isClopen_iff.mp hAClopen
---   cases' hClopen with hEmp hUniv
---   · exact hANonempty.ne_empty hEmp
---   · exact hAProper hUniv
-
 /- X is a connected Hausdorff space -/
 variable (X : Type*) [TopologicalSpace X] [ConnectedSpace X] [T2Space X]
 
@@ -194,7 +183,12 @@ lemma real_cover (φ ψ : PartialHomeomorph X ℝ) (hCover : φ.source ∪ ψ.so
           exfalso
 
           let Z := φ.symm '' (Y)
-          have hZsubV : Z ⊆ ψ.source := by sorry
+          have hZsubV' : φ.source ∩ ψ.source ⊆ ψ.source := inter_subset_right
+          have hZsubUV : Z ⊆ φ.source ∩ ψ.source := by
+
+            sorry
+          have hZsubV : Z ⊆ ψ.source := by
+            exact fun ⦃a⦄ a_1 ↦ hZsubV' (hZsubUV a_1)
           obtain ⟨a, b, hInt⟩ := hBounded
           have hZ : Z = φ.symm '' (Ioo a b) := by simp_all only [ne_eq, inter_eq_right, not_false_eq_true, mem_image,
             mem_inter_iff, forall_exists_index, and_imp, A, B, Y, Z]
@@ -224,19 +218,66 @@ lemma real_cover (φ ψ : PartialHomeomorph X ℝ) (hCover : φ.source ∪ ψ.so
       --       sorry
       --   · sorry
 
-      have hMono' : StrictMonoOn (ψ ∘ φ.symm) (φ.target) ∨ StrictAntiOn (ψ ∘ φ.symm) (φ.target) := by
-        have hψCont : ContinuousOn ψ (ψ.source) := by exact PartialHomeomorph.continuousOn ψ
-        have hUVsubV : ψ.source ∩ φ.source ⊆ φ.source := by exact inter_subset_right
-        have hψCont' : ContinuousOn ψ (ψ.source ∩ φ.source) := by
-          apply ContinuousOn.mono hψCont
-          exact inter_subset_left
+      -- Equivalent lemma to Continuous.strictMono_of_inj for restricted domain?
+      -- have hMono' : StrictMonoOn (ψ ∘ φ.symm) (φ.target) ∨ StrictAntiOn (ψ ∘ φ.symm) (φ.target) := by
+      --   have hψCont : ContinuousOn ψ (ψ.source) := by exact PartialHomeomorph.continuousOn ψ
+      --   have hUVsubV : ψ.source ∩ φ.source ⊆ φ.source := by exact inter_subset_right
+      --   have hψCont' : ContinuousOn ψ (ψ.source ∩ φ.source) := by
+      --     apply ContinuousOn.mono hψCont
+      --     exact inter_subset_left
+
+
+      --   sorry
+
+      have hUNonempty : (φ.source).Nonempty := by exact IsConnected.nonempty hUCon
+      have hVNonempty : (ψ.source).Nonempty := by exact IsConnected.nonempty hVCon
+
+      have hUVNonempty : (φ.source ∩ ψ.source).Nonempty := by
+        by_contra hUVEmpty
+        have hUVEmpty' : φ.source ∩ ψ.source = ∅ := not_nonempty_iff_eq_empty.mp hUVEmpty
+        have hUVDisjoint : Disjoint φ.source ψ.source := disjoint_iff_inter_eq_empty.mpr hUVEmpty'
+        have hXCon : IsConnected (univ : Set X) := by (expose_names; exact connectedSpace_iff_univ.mp inst_1)
+        have hPrecon : IsPreconnected (univ : Set X) := hXCon.isPreconnected
+        rw [← hCover] at hPrecon
         sorry
+
+      -- WLOG (multiply by -1) strictly increasing approach, or cases approach?
+      have hTrIncr : StrictMono (ψ ∘ φ.symm) := by
+        -- From hMono, we know that the transition map is either strictly increasing or decreasing
+        -- Multiply transition map by -1 if it is strictly decreasing and prove that -ψ fulfils the desired chart properties
+        sorry
+
 
       rcases hRClassA'' with (hAIio | hAIoi | hAUnion)
       · rcases hRClassB'' with (hBIio | hBIoi | hBUnion)
         ·
           sorry
-        · sorry
+        · -- Case explored in Beginner's Course in Topology
+          obtain ⟨a, hAIio'⟩ := hAIio
+          obtain ⟨b, hBIoi'⟩ := hBIoi
+          have hMonoTr : StrictMonoOn (ψ ∘ φ.symm) (A) := by
+            simp_all only [A, B]
+            refine strictMono_restrict.mp ?_
+            have hCOTA : OrderClosedTopology (Iio a) := by exact Subtype.instOrderClosedTopology
+            have hContTr : Continuous ((Iio a).restrict (ψ ∘ φ.symm)) := by
+              have hψCont : Continuous ((φ.symm '' (Iio a)).restrict ψ) := by
+                sorry
+              sorry
+            -- exact Continuous.strictMono_of_inj hCOTA
+            sorry
+
+          have hx_0 : ∃ x_0, x_0 ∈ (φ.source ∩ ψ.source) := by
+            sorry
+          obtain ⟨x_0, hx_0⟩ := hx_0
+          let X' := ψ.symm '' (Iic (ψ x_0)) ∪ φ.symm '' (Ici (φ x_0))
+
+          -- U and V contained in X', so X' = X = U ∪ V
+          have hUsubX' : φ.source ⊆ X' := by
+            have hφa : φ x_0 < a := by
+              sorry
+            sorry
+
+          sorry
         · sorry
       · rcases hRClassB'' with (hBIio | hBIoi | hBUnion)
         · sorry
