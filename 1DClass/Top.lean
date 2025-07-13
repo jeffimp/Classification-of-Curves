@@ -4,6 +4,9 @@ Author: Jeff Lee
 -/
 import Mathlib.Tactic -- import all the tactics
 import Mathlib.Analysis.Complex.Circle
+import Mathlib.Geometry.Manifold.ChartedSpace
+import Mathlib.Geometry.Manifold.IsManifold.InteriorBoundary
+import Mathlib.Geometry.Manifold.Instances.Real
 import «1DClass».RealClass
 
 open Set Function
@@ -11,10 +14,7 @@ open Set Function
 /- X is a connected Hausdorff space -/
 variable (X : Type*) [TopologicalSpace X] [ConnectedSpace X] [T2Space X]
 
-/- If a connected Hausdorff space X can be represented as the union of two open subsets homeomorphic to ℝ, then X is
-homeomorphic to either ℝ or the sphere. -/
--- Using PartialHomeomorph structure instead of Homeomorph in order to avoid Subtype difficulties
--- Notation: U = φ.source, V = ψ.source
+/- If a connected Hausdorff space X can be represented as the union of two open subsets homeomorphic to ℝ, then X is homeomorphic to either ℝ or the sphere. -/
 lemma real_cover (φ ψ : PartialHomeomorph X ℝ) (hCover : φ.source ∪ ψ.source = univ)
     (hφ : φ.target = univ) (hψ : ψ.target = univ) : Nonempty (Homeomorph X ℝ) ∨ Nonempty (Homeomorph X Circle) := by
 
@@ -57,7 +57,7 @@ lemma real_cover (φ ψ : PartialHomeomorph X ℝ) (hCover : φ.source ∪ ψ.so
         simp_all only [A, B]
 
       have hUVnV : φ.source ∩ ψ.source ≠ ψ.source := by
-          simp only [ne_eq, inter_eq_right, A, B]
+          simp only [ne_eq, inter_eq_right]
           exact hVU
 
       have hAProper : A ≠ univ := by
@@ -206,8 +206,75 @@ lemma real_cover (φ ψ : PartialHomeomorph X ℝ) (hCover : φ.source ∪ ψ.so
         · right
           exact hIoi
 
-      have hRClassA'' : (∃ a_1, A = Iio a_1) ∨ (∃ a_2, A = Ioi a_2) ∨ (∃ a_3 a_4, (a_3 < a_4) ∧ B = (Iio a_3) ∪ (Ioi a_4)):= by sorry
+      have hRClassA'' : (∃ a_1, A = Iio a_1) ∨ (∃ a_2, A = Ioi a_2) ∨ (∃ a_3 a_4, (a_3 < a_4) ∧ A = (Iio a_3) ∪ (Ioi a_4)):= by sorry
       have hRClassB'' : (∃ b_1, B = Iio b_1) ∨ (∃ b_2, B = Ioi b_2) ∨ (∃ b_3 b_4, (b_3 < b_4) ∧ B = (Iio b_3) ∪ (Ioi b_4)) := by sorry
+
+      -- have φ' : Homeomorph φ.source φ.target := by exact φ.toHomeomorphSourceTarget
+      -- have ψ' : Homeomorph ψ.source ψ.target := ψ.toHomeomorphSourceTarget
+      -- let T := ((φ' '' ((univ : Set φ.source) ∩ (univ : Set ψ.source))).restrict (ψ ∘ φ.symm))
+
+      -- CONVINCE THAT THE IMAGE RESTRICTS TO U ∩ V!!!
+      let invφ' : A → X := fun x => φ.symm x.val
+      -- (φ '' (φ.source ∩ ψ.source)).restrict φ.symm
+
+      have hinvφ'ran : range invφ' = φ.source ∩ ψ.source := by
+        ext y
+        simp only [mem_range, mem_inter_iff]
+        constructor
+        · rintro ⟨x, rfl⟩
+          obtain ⟨z, hzUV⟩ := x.prop
+          simp_all [A, B, invφ']
+          obtain ⟨val, property⟩ := x
+          obtain ⟨left, right⟩ := hzUV
+          obtain ⟨left, right_1⟩ := left
+          subst right
+          simp_all only [PartialHomeomorph.left_inv]
+        · intro hy
+          use ⟨φ y, ⟨y, hy, rfl⟩⟩
+          simp_all only [ne_eq, inter_eq_right, not_false_eq_true, mem_image, mem_inter_iff, forall_exists_index,
+            and_imp, PartialHomeomorph.left_inv, A, B, invφ']
+
+      have hinvφ'Cont : Continuous invφ' := by
+        refine continuous_iff_continuousAt.mpr ?_
+        intro x
+        sorry
+
+      let T : φ '' (φ.source ∩ ψ.source) → ℝ := (φ '' (φ.source ∩ ψ.source)).restrict (ψ ∘ φ.symm)
+      -- let T := (φ '' (φ.source ∩ ψ.source)).restrict (ψ ∘ φ.symm)
+      -- have hTDef : T = (φ '' (φ.source ∩ ψ.source)).restrict (ψ ∘ φ.symm) := by sorry
+      have hTCont : Continuous T := by
+        refine continuousOn_iff_continuous_restrict.mp ?_
+        refine (PartialHomeomorph.continuousOn_iff_continuousOn_comp_left ψ ?_).mp ?_
+        · simp only [image_subset_iff]
+          have preimage_symm_preimage_eq_inter : φ ⁻¹' (φ.symm ⁻¹' ψ.source) = φ.source ∩ ψ.source := by
+            ext x
+            simp only [mem_preimage, mem_inter_iff]
+            constructor
+            · intro h
+              have hxφ : x ∈ φ.source := by sorry
+              have : φ x ∈ φ.symm ⁻¹' ψ.source := h
+              simp only [mem_preimage] at this
+              have hφsymm : φ.symm (φ x) = x := φ.left_inv hxφ
+              rw [← hφsymm] at this
+              simp_all only [ne_eq, inter_eq_right, not_false_eq_true, mem_image, mem_inter_iff, forall_exists_index,
+                and_imp, PartialHomeomorph.left_inv, and_self, A, B, invφ']
+            · rintro ⟨hxφ, hxψ⟩
+              simp_all only [ne_eq, inter_eq_right, not_false_eq_true, mem_image, mem_inter_iff, forall_exists_index,
+                and_imp, PartialHomeomorph.left_inv, A, B, invφ']
+          exact Eq.subset (id (Eq.symm preimage_symm_preimage_eq_inter))
+        · exact continuousOn_iff_continuous_restrict.mpr hinvφ'Cont
+
+      have hMono : StrictMono T ∨ StrictAnti T := by
+        sorry -- apply Continuous.strictMono_of_inj
+
+          -- have h : φ.source ∩ ψ.source ⊆ ψ.source := by exact inter_subset_right
+          -- have h' : ContinuousOn (↑ψ.toPartialEquiv) ψ.source := ψ.continuousOn_toFun
+          -- -- apply ContinuousOn.mono at h'
+          -- have h'' : ContinuousOn ψ (φ.source ∩ ψ.source) := by exact ContinuousOn.mono h' h
+
+
+      -- have hMono'' : StrictMono (ψ'.toFun ∘ φ'.invFun) ∨ StrictAnti (ψ'.toFun ∘ φ'.invFun) := by
+      --   apply Continuous.strictMono_of_inj
 
       -- have hMono : StrictMono (ψ ∘ φ.symm) ∨ StrictAnti (ψ ∘ φ.symm) := by
       --   apply Continuous.strictMono_of_inj
@@ -225,10 +292,9 @@ lemma real_cover (φ ψ : PartialHomeomorph X ℝ) (hCover : φ.source ∪ ψ.so
       --   have hψCont' : ContinuousOn ψ (ψ.source ∩ φ.source) := by
       --     apply ContinuousOn.mono hψCont
       --     exact inter_subset_left
-
-
       --   sorry
 
+      -- Proving that U ∩ V is nonempty to choose elements
       have hUNonempty : (φ.source).Nonempty := by exact IsConnected.nonempty hUCon
       have hVNonempty : (ψ.source).Nonempty := by exact IsConnected.nonempty hVCon
 
@@ -239,15 +305,21 @@ lemma real_cover (φ ψ : PartialHomeomorph X ℝ) (hCover : φ.source ∪ ψ.so
         have hXCon : IsConnected (univ : Set X) := by (expose_names; exact connectedSpace_iff_univ.mp inst_1)
         have hPrecon : IsPreconnected (univ : Set X) := hXCon.isPreconnected
         rw [← hCover] at hPrecon
-        sorry
-
-      -- WLOG (multiply by -1) strictly increasing approach, or cases approach?
-      have hTrIncr : StrictMono (ψ ∘ φ.symm) := by
-        -- From hMono, we know that the transition map is either strictly increasing or decreasing
-        -- Multiply transition map by -1 if it is strictly decreasing and prove that -ψ fulfils the desired chart properties
+        have hUnion : (φ.source ∪ ψ.source).Nonempty := by exact Nonempty.inr hVNonempty
+        -- We want to get a contradiction from the fact that φ.source and ψ.source are disjoint, yet it is preconnected AND not empty!
         sorry
 
 
+      have hRCAB : ((∃ a, A = Iio a) ∧ (∃ b, B = Ioi b)) ∨ ((∃ a_1 a_2, (a_1 < a_2) ∧ (A = Iio a_1 ∪ Ioi a_2)) ∧ (∃ b_1 b_2, (b_1 < b_2) ∧ (B = Iio b_1 ∪ Ioi b_2))) := by
+        sorry
+
+
+      -- have hTrIncr : StrictMono (ψ ∘ φ.symm) := by
+      --   -- From hMono, we know that the transition map is either strictly increasing or decreasing
+      --   -- Multiply transition map by -1 if it is strictly decreasing and prove that -ψ fulfils the desired chart properties
+      --   sorry
+
+      -- Splitting into cases approach
       rcases hRClassA'' with (hAIio | hAIoi | hAUnion)
       · rcases hRClassB'' with (hBIio | hBIoi | hBUnion)
         ·
@@ -266,10 +338,13 @@ lemma real_cover (φ ψ : PartialHomeomorph X ℝ) (hCover : φ.source ∪ ψ.so
             -- exact Continuous.strictMono_of_inj hCOTA
             sorry
 
-          have hx_0 : ∃ x_0, x_0 ∈ (φ.source ∩ ψ.source) := by
-            sorry
-          obtain ⟨x_0, hx_0⟩ := hx_0
+          have hx_0 : ∃ x_0, x_0 ∈ (φ.source ∩ ψ.source) := by exact hUVNonempty
+          obtain ⟨x_0, hx_0⟩ := hx_0 -- hx_0
           let X' := ψ.symm '' (Iic (ψ x_0)) ∪ φ.symm '' (Ici (φ x_0))
+
+          have hy : ∃ y, y ∈ (φ.source ∩ ψ.source) := by exact hUVNonempty
+          obtain ⟨y, hy⟩ := hy
+
 
           -- U and V contained in X', so X' = X = U ∪ V
           have hUsubX' : φ.source ⊆ X' := by
@@ -287,3 +362,28 @@ lemma real_cover (φ ψ : PartialHomeomorph X ℝ) (hCover : φ.source ∪ ψ.so
         · sorry
         · sorry
         · sorry
+
+/- Let M be a compact connected topological 1-dimensional manifold. -/
+variable (M : Type*) [TopologicalSpace M] [ConnectedSpace M] [CompactSpace M] [T2Space M] [ChartedSpace ℝ M]
+-- I think that this is enough to define M as a *topological* manifold without boundary
+-- When it comes to topological manifolds with boundary, it's enough to change ChartedSpace model space from ℝ to (EuclideanHalfSpace 1)
+-- Be careful when it comes to the later case of defining smooth manifolds; more invovled ModelWithCorners etc structures.
+
+/- If M is a connected compact one-dimensional manifold, then it can be covered by. -/
+lemma finite_chart_cover : ∃ (Cover : Finset (Set M)), (∀ U ∈ Cover, (IsOpen U ∧ Nonempty (U ≃ₜ ℝ) ∧ ⋃₀ (Cover : Set (Set M)) = univ)) := by
+  /-
+  For every point p ∈ M, there exists an open neighborhood U_p ⊆ M and a homeomorphism
+  φ_p : U_p → V_p ⊆ ℝ, where V_p is open in ℝ.
+  Each V_p ⊆ ℝ is a disjoint union of open intervals (by real_class lemma).
+  Let I_p be the interval in V_p which contains the point φ_p(p) and set W_p = (φ_p)⁻¹(I_p).
+  Then φ_p | W_p : W_p → I_p is a homeomorphism onto the open interval I_p.
+  Every open interval in ℝ is homeomorphic to ℝ so W_p ≃ₜ ℝ.
+  By contruction, {W_p : p ∈ M} is an open cover of M and by compactness, there exists a
+  finite subcover {W_{p_i} : i ∈ {1, ..., n}}, where each W_{p_i} ≃ₜ ℝ. ∎
+  -/
+  sorry
+
+/- Every compact, connected, one-dimensional manifold without boundary is homeomorphic to the circle. -/
+theorem compact_connected_curve : Nonempty (M ≃ₜ Circle) := by
+  -- Since M is compact, it can be covered by finite number of open subsets homeomorphic to ℝ^1.
+  sorry

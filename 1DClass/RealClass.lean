@@ -153,27 +153,18 @@ lemma Icc_not_open (A : Set ℝ) (a b : ℝ) (hAOpen : IsOpen A) (hANonempty : A
       have hIccClosed : IsClosed (Icc a b) := isClosed_Icc
       have hcomplOpen : IsOpen (Icc a b)ᶜ := IsClosed.isOpen_compl
       obtain hPrecon := isPreconnected_univ (Icc a b) (Icc a b)ᶜ hC hcomplOpen
-        (by simp only [union_compl_self, subset_refl])
-        (by simp only [univ_inter, nonempty_Icc]
-            linarith)
-        (by simp only [univ_inter]
-            have hy : ((b + 1) ∈ (Icc a b)ᶜ)
-            simp only [mem_compl_iff, mem_Icc, add_le_iff_nonpos_right, not_and, not_le,
-              zero_lt_one, implies_true]
-            exact nonempty_of_mem hy)
-      -- have h1 : univ ⊆ Icc a b ∪ (Icc a b)ᶜ := by simp only [union_compl_self, subset_refl]
-      -- have h2 : (univ ∩ Icc a b).Nonempty := by simp only [univ_inter, nonempty_Icc] ; exact le_of_lt hab
-      -- have h3 : (univ ∩ (Icc a b)ᶜ).Nonempty := by
-      --   simp only [univ_inter]
-      --   have hb : b + 1 ∈ (Icc a b)ᶜ := by
-      --     simp only [mem_compl_iff, mem_Icc, add_le_iff_nonpos_right, not_and, not_le, zero_lt_one,
-      --       implies_true]
-      --   exact nonempty_of_mem hb
-      -- apply hPrecon at h1
-      -- apply h1 at h2
-      -- apply h2 at h3
-      -- simp only [inter_compl_self, inter_empty, Set.not_nonempty_empty] at h3
-      simp only [inter_compl_self, inter_empty, Set.not_nonempty_empty] at hPrecon
+      have h1 : univ ⊆ Icc a b ∪ (Icc a b)ᶜ := by simp only [union_compl_self, subset_refl]
+      have h2 : (univ ∩ Icc a b).Nonempty := by simp only [univ_inter, nonempty_Icc] ; exact hab
+      have h3 : (univ ∩ (Icc a b)ᶜ).Nonempty := by
+        simp only [univ_inter]
+        have hb : b + 1 ∈ (Icc a b)ᶜ := by
+          simp only [mem_compl_iff, mem_Icc, add_le_iff_nonpos_right, not_and, not_le, zero_lt_one,
+            implies_true]
+        exact nonempty_of_mem hb
+      apply hPrecon at h1
+      apply h1 at h2
+      apply h2 at h3
+      simp only [inter_compl_self, inter_empty, Set.not_nonempty_empty] at h3
     simp_all only [ne_eq]
     apply Aesop.BuiltinRules.not_intro
     intro a_1
