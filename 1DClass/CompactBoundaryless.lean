@@ -3,6 +3,7 @@ import Mathlib.Analysis.Complex.Circle
 import Mathlib.Geometry.Manifold.ChartedSpace
 import Mathlib.Geometry.Manifold.IsManifold.InteriorBoundary
 import Mathlib.Geometry.Manifold.Instances.Real
+import Mathlib.Analysis.InnerProductSpace.EuclideanDist
 import «1DClass».RealClass
 import «1DClass».Top
 
@@ -10,12 +11,32 @@ open Set Function Manifold
 
 /- Let M be a compact connected topological 1-dimensional manifold. -/
 variable (M : Type*) [TopologicalSpace M] [ConnectedSpace M] [CompactSpace M] [T2Space M] [ChartedSpace (EuclideanSpace ℝ (Fin 1)) M] [IsManifold (𝓡 1) 0 M]
--- I think that this is enough to define M as a *topological* manifold without boundary
--- When it comes to topological manifolds with boundary, it's enough to change ChartedSpace model space from ℝ to (EuclideanHalfSpace 1)
--- Be careful when it comes to the later case of defining smooth manifolds; more invovled ModelWithCorners etc structures.
+
+lemma chart_homeo_real : ∀ (x : M), Nonempty ((chartAt (EuclideanSpace ℝ (Fin 1)) x).source ≃ₜ ℝ) := by
+  intro x
+  let U := (chartAt (EuclideanSpace ℝ (Fin 1)) x).source
+  let V := (chartAt (EuclideanSpace ℝ (Fin 1)) x).target
+  have φ : U ≃ₜ V := (chartAt (EuclideanSpace ℝ (Fin 1)) x).toHomeomorphSourceTarget
+  have hUV : Nonempty (U ≃ₜ V) := Nonempty.intro φ
+  have hVOpen : IsOpen V := (chartAt (EuclideanSpace ℝ (Fin 1)) x).open_target
+  have h : (EuclideanSpace ℝ (Fin 1)) ≃ₜ ℝ := by
+    -- have h'' : AddCommGroup ℝ := by exact Real.instAddCommGroup
+    -- obtain h' := toEuclidean ℝ
+    sorry
+  have i : V ≃ₜ ℝ := by
+
+    sorry
+  have φi : U ≃ₜ ℝ := φ.trans i
+  exact Nonempty.intro φi
 
 /- If M is a connected compact one-dimensional manifold, then it has a finite cover where each
 open set in the cover is homeomorphic to ℝ. -/
+lemma finite_chart_cover' : ∃ (ι : Set M), (∃ (U : ι → Set M), (∀ (i : ι), IsOpen (U i) ∧ Nonempty (U i ≃ₜ ℝ)) ∧ univ ⊆ ⋃ i, U i) := by
+  have hCompact : IsCompact (univ : Set M) := CompactSpace.isCompact_univ
+  obtain hChartCover := iUnion_source_chartAt (EuclideanSpace ℝ (Fin 1)) M
+
+  sorry
+
 lemma finite_chart_cover : ∃ (Cover : Finset (Set M)), (∀ U ∈ Cover, (IsOpen U ∧ Nonempty (U ≃ₜ ℝ) ∧ ⋃₀ (Cover : Set (Set M)) = univ)) := by
   -- For each point p ∈ M, get a chart from the charted space structure
   /-
@@ -28,16 +49,20 @@ lemma finite_chart_cover : ∃ (Cover : Finset (Set M)), (∀ U ∈ Cover, (IsOp
   By contruction, {W_p : p ∈ M} is an open cover of M and by compactness, there exists a
   finite subcover {W_{p_i} : i ∈ {1, ..., n}}, where each W_{p_i} ≃ₜ ℝ. ∎
   -/
-  have h_local_chart : ∀ p : M, ∃ (W : Set M), IsOpen W ∧ p ∈ W ∧ Nonempty (W ≃ₜ ℝ) := by
+  have hCompact : IsCompact (univ : Set M) := CompactSpace.isCompact_univ
+
+  -- Covering M with charts
+  obtain hChartCover := iUnion_source_chartAt (EuclideanSpace ℝ (Fin 1)) M
+
+  obtain hFinCov := IsCompact.elim_finite_subcover hCompact
+
+  have hLocalChart : ∀ (p : M), (∃ (U : Set M), IsOpen U ∧ p ∈ U ∧ Nonempty (U ≃ₜ ℝ)) := by
     intro p
-    -- Get a chart around p
     let U := (chartAt (EuclideanSpace ℝ (Fin 1)) p).source
     let φ := chartAt (EuclideanSpace ℝ (Fin 1)) p
-
     have hUOpen : IsOpen U := (chartAt (EuclideanSpace ℝ (Fin 1)) p).open_source
     have hp : p ∈ U := ChartedSpace.mem_chart_source p
 
-    -- φ(U) is open in EuclideanSpace ℝ (Fin 1) ≃ ℝ
     let V := φ '' U
     have hVOpen : IsOpen V := PartialHomeomorph.isOpen_image_of_subset_source φ hUOpen fun ⦃a⦄ a ↦ a
 
@@ -63,7 +88,6 @@ that each union V_k = U_1 ∪ ⋯ ∪ U_k is connected. -/
 
 /- Every compact, connected, one-dimensional manifold without boundary is homeomorphic to the circle. -/
 theorem compact_connected_curve : Nonempty (M ≃ₜ Circle) := by
-  -- Indexing sets by
   -- Find minimal cover (cover of size at least n): there must be 1-2
     -- If n = 1, contradiction - ℝ not compact.
     -- n ≥ 2 so there must be at least 2 sets that overlap because M connected

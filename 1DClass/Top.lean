@@ -14,6 +14,12 @@ open Set Function
 /- X is a connected Hausdorff space -/
 variable (X : Type*) [TopologicalSpace X] [ConnectedSpace X] [T2Space X]
 
+/- Transition map monotonicity lemma. -/
+lemma transition_mono (φ ψ : PartialHomeomorph X ℝ) (hCover : φ.source ∪ ψ.source = univ)
+    (hφ : φ.target = univ) (hψ : ψ.target = univ) : StrictMonoOn (ψ ∘ φ.symm) (φ '' (φ.source ∩ ψ.source)) ∨ StrictAntiOn (ψ ∘ φ.symm) (φ '' (φ.source ∩ ψ.source)) := by
+
+  sorry
+
 /- If a connected Hausdorff space X can be represented as the union of two open subsets homeomorphic to ℝ, then X is homeomorphic to either ℝ or the sphere. -/
 lemma real_cover (φ ψ : PartialHomeomorph X ℝ) (hCover : φ.source ∪ ψ.source = univ)
     (hφ : φ.target = univ) (hψ : ψ.target = univ) : Nonempty (Homeomorph X ℝ) ∨ Nonempty (Homeomorph X Circle) := by
@@ -292,19 +298,28 @@ lemma real_cover (φ ψ : PartialHomeomorph X ℝ) (hCover : φ.source ∪ ψ.so
         sorry -- apply Continuous.strictMono_of_inj
 
       -- Proving that U ∩ V is nonempty to choose elements
-      have hUNonempty : (φ.source).Nonempty := by exact IsConnected.nonempty hUCon
-      have hVNonempty : (ψ.source).Nonempty := by exact IsConnected.nonempty hVCon
+      have hUNonempty : (φ.source).Nonempty := IsConnected.nonempty hUCon
+      have hVNonempty : (ψ.source).Nonempty := IsConnected.nonempty hVCon
 
       have hUVNonempty : (φ.source ∩ ψ.source).Nonempty := by
         by_contra hUVEmpty
         have hUVEmpty' : φ.source ∩ ψ.source = ∅ := not_nonempty_iff_eq_empty.mp hUVEmpty
-        have hUVDisjoint : Disjoint φ.source ψ.source := disjoint_iff_inter_eq_empty.mpr hUVEmpty'
+        -- have hUVDisjoint : Disjoint φ.source ψ.source := disjoint_iff_inter_eq_empty.mpr hUVEmpty'
         have hXCon : IsConnected (univ : Set X) := by (expose_names; exact connectedSpace_iff_univ.mp inst_1)
-        have hPrecon : IsPreconnected (univ : Set X) := hXCon.isPreconnected
-        rw [← hCover] at hPrecon
+        -- have hPrecon : IsPreconnected (univ : Set X) := hXCon.isPreconnected
+        rw [← hCover] at hXCon
+        -- rw [← hCover] at hPrecon
         have hUnion : (φ.source ∪ ψ.source).Nonempty := by exact Nonempty.inr hVNonempty
         -- We want to get a contradiction from the fact that φ.source and ψ.source are disjoint, yet it is preconnected AND not empty!
-        sorry
+        -- have hXnCon : ¬ IsConnected (φ.source ∪ ψ.source) := by
+        --   sorry
+        -- exact hXnCon hXCon
+        rw [IsConnected, IsPreconnected] at hXCon
+        obtain hXPrecon := hXCon.right φ.source ψ.source hUOpen hVOpen fun ⦃a⦄ a ↦ a
+        have h₁ : ((φ.source ∪ ψ.source) ∩ φ.source).Nonempty := by aesop
+        have h₂ : ((φ.source ∪ ψ.source) ∩ ψ.source).Nonempty := by aesop
+        have hCon' : ¬ ((φ.source ∪ ψ.source) ∩ (φ.source ∩ ψ.source)).Nonempty := by aesop
+        exact hCon' (hXPrecon h₁ h₂)
 
       -- Splitting into cases approach
       rcases hRClassA'' with (hAIio | hAIoi | hAUnion)
@@ -317,12 +332,48 @@ lemma real_cover (φ ψ : PartialHomeomorph X ℝ) (hCover : φ.source ∪ ψ.so
           have hMonoTr : StrictMonoOn (ψ ∘ φ.symm) (A) := by
             simp_all only [A, B]
             refine strictMono_restrict.mp ?_
-            have hCOTA : OrderClosedTopology (Iio a) := by exact Subtype.instOrderClosedTopology
             have hContTr : Continuous ((Iio a).restrict (ψ ∘ φ.symm)) := by
               have hψCont : Continuous ((φ.symm '' (Iio a)).restrict ψ) := by
+                refine ContinuousOn.restrict ?_
+                have ψCont' : ContinuousOn ψ (ψ.source) := PartialHomeomorph.continuousOn ψ
+                have : (↑φ.symm '' Iio a) ⊆ ψ.source := by
+                  rw [← hAIio']
+                  have : φ.symm '' (φ '' (φ.source ∩ ψ.source)) = φ.source ∩ ψ.source := by
+                    have : ∀ (x : (φ.source ∩ ψ.source : Set X)), φ.symm (φ (x)) = x := by
+                      intro x
+                      apply φ.left_inv
+                      simp_all only [ne_eq, inter_eq_right, not_false_eq_true, mem_Iio, or_true, implies_true,
+                        invφ', A, ψ', T]
+                      obtain ⟨val, property⟩ := x
+                      simp only
+                      simp_all only [mem_inter_iff]
+                    ext z
+                    simp only [mem_image, mem_inter_iff, exists_exists_and_eq_and]
+                    constructor
+                    · rintro ⟨x, ⟨hxφ, hxψ⟩, rfl⟩
+                      simp_all only [ne_eq, inter_eq_right, not_false_eq_true, mem_Iio, or_true, implies_true,
+                        Subtype.forall, mem_inter_iff, PartialHomeomorph.left_inv, and_self,
+                        invφ', A, ψ', T]
+                    · intro hz
+                      use z
+                      refine and_assoc.mpr ?_
+                      simp_all only [ne_eq, inter_eq_right, not_false_eq_true, mem_Iio, or_true, implies_true,
+                        Subtype.forall, mem_inter_iff, PartialHomeomorph.left_inv, and_self,
+                        invφ', A, ψ', T]
+                  rw [this]
+                  exact inter_subset_right
+
+                exact ContinuousOn.mono ψCont' this
+
+              have hφCont : Continuous ((Iio a).restrict φ.symm) := by
+
                 sorry
+
+              have : TopologicalSpace (Iio a) := by exact instTopologicalSpaceSubtype
+              have : TopologicalSpace (φ.symm '' Iio a) := by exact instTopologicalSpaceSubtype
+              -- obtain h := hψCont.comp hφCont
               sorry
-            -- exact Continuous.strictMono_of_inj hCOTA
+
             sorry
 
           have hx_0 : ∃ x_0, x_0 ∈ (φ.source ∩ ψ.source) := by exact hUVNonempty
@@ -349,3 +400,8 @@ lemma real_cover (φ ψ : PartialHomeomorph X ℝ) (hCover : φ.source ∪ ψ.so
         · sorry
         · sorry
         · sorry
+
+lemma test : StrictMono (id : ℝ → ℝ) ∨ StrictAnti (id : ℝ → ℝ) := by
+  have h1 : Continuous (id : ℝ → ℝ) := by exact continuous_id
+  have h2 : Injective (id : ℝ → ℝ) := by exact fun ⦃a₁ a₂⦄ a ↦ a
+  refine Continuous.strictMono_of_inj h1 h2
