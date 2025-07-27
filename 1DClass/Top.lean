@@ -14,12 +14,6 @@ open Set Function
 /- X is a connected Hausdorff space -/
 variable (X : Type*) [TopologicalSpace X] [ConnectedSpace X] [T2Space X]
 
-/- Transition map monotonicity lemma. -/
-lemma transition_mono (φ ψ : PartialHomeomorph X ℝ) (hCover : φ.source ∪ ψ.source = univ)
-    (hφ : φ.target = univ) (hψ : ψ.target = univ) : StrictMonoOn (ψ ∘ φ.symm) (φ '' (φ.source ∩ ψ.source)) ∨ StrictAntiOn (ψ ∘ φ.symm) (φ '' (φ.source ∩ ψ.source)) := by
-
-  sorry
-
 /- If a connected Hausdorff space X can be represented as the union of two open subsets homeomorphic to ℝ, then X is homeomorphic to either ℝ or the sphere. -/
 lemma real_cover (φ ψ : PartialHomeomorph X ℝ) (hCover : φ.source ∪ ψ.source = univ)
     (hφ : φ.target = univ) (hψ : ψ.target = univ) : Nonempty (Homeomorph X ℝ) ∨ Nonempty (Homeomorph X Circle) := by
@@ -232,70 +226,6 @@ lemma real_cover (φ ψ : PartialHomeomorph X ℝ) (hCover : φ.source ∪ ψ.so
 
       have hRClassA'' : (∃ a_1, A = Iio a_1) ∨ (∃ a_2, A = Ioi a_2) ∨ (∃ a_3 a_4, (a_3 < a_4) ∧ A = (Iio a_3) ∪ (Ioi a_4)):= by sorry
       have hRClassB'' : (∃ b_1, B = Iio b_1) ∨ (∃ b_2, B = Ioi b_2) ∨ (∃ b_3 b_4, (b_3 < b_4) ∧ B = (Iio b_3) ∪ (Ioi b_4)) := by sorry
-
-      -- have φ' : Homeomorph φ.source φ.target := by exact φ.toHomeomorphSourceTarget
-      -- have ψ' : Homeomorph ψ.source ψ.target := ψ.toHomeomorphSourceTarget
-      -- let T := ((φ' '' ((univ : Set φ.source) ∩ (univ : Set ψ.source))).restrict (ψ ∘ φ.symm))
-
-      let invφ' : A → X := fun x => φ.symm x.val
-      -- (φ '' (φ.source ∩ ψ.source)).restrict φ.symm
-
-      have hinvφ'ran : range invφ' = φ.source ∩ ψ.source := by
-        ext y
-        simp only [mem_range, mem_inter_iff]
-        constructor
-        · rintro ⟨x, rfl⟩
-          obtain ⟨z, hzUV⟩ := x.prop
-          simp_all [A, B, invφ']
-          obtain ⟨val, property⟩ := x
-          obtain ⟨left, right⟩ := hzUV
-          obtain ⟨left, right_1⟩ := left
-          subst right
-          simp_all only [PartialHomeomorph.left_inv]
-        · intro hy
-          use ⟨φ y, ⟨y, hy, rfl⟩⟩
-          simp_all only [ne_eq, inter_eq_right, not_false_eq_true, mem_image, mem_inter_iff, forall_exists_index,
-            and_imp, PartialHomeomorph.left_inv, A, B, invφ']
-
-      -- let invφ'' : A → (φ.source ∩ ψ.source : Set X) := fun x => φ.symm x.val
-
-      have hinvφ'Cont : Continuous invφ' := by
-        refine continuous_iff_continuousAt.mpr ?_
-        intro x
-        -- have : TopologicalSpace A := instTopologicalSpaceSubtype
-        obtain h := PartialHomeomorph.continuousAt_symm φ
-        have hAsubTarget : A ⊆ φ.target := by
-          simp only [A] at ⊢
-          intro y hy
-          obtain ⟨x, hx, rfl⟩ := hy
-          refine PartialHomeomorph.map_source φ ?_
-          exact mem_of_mem_inter_left hx
-        have : x.val ∈ A := by exact Subtype.coe_prop x
-        have h': x.val ∈ φ.target := by exact hAsubTarget this
-        -- have h'' : x.val ∈ φ.target := h'
-        -- apply h at h'
-        -- We currently have ContinuousAt ↑φ.symm ↑x but we want ContinuousAt invφ' x
-        rw [show invφ' = fun x => φ.symm x.val from rfl]
-        apply ContinuousAt.comp (h h')
-        exact continuousAt_subtype_val
-
-      let ψ' : (φ.source ∩ ψ.source : Set X) → ℝ := fun x => ψ x.val
-
-      have hψ'Cont : Continuous ψ' := by
-        refine continuous_iff_continuousAt.mpr ?_
-        intro x
-        obtain h := PartialHomeomorph.continuousAt ψ
-        have : x.val ∈ φ.source ∩ ψ.source := by exact Subtype.coe_prop x
-        have h' : x.val ∈ ψ.source := by exact mem_of_mem_inter_right this
-        apply ContinuousAt.comp (h h')
-        exact continuousAt_subtype_val
-
-      -- let transition : A → ℝ := fun x => ψ' (invφ' x)
-
-      let T : φ '' (φ.source ∩ ψ.source) → ℝ := (φ '' (φ.source ∩ ψ.source)).restrict (ψ ∘ φ.symm)
-
-      have hMono : StrictMono T ∨ StrictAnti T := by
-        sorry -- apply Continuous.strictMono_of_inj
 
       -- Proving that U ∩ V is nonempty to choose elements
       have hUNonempty : (φ.source).Nonempty := IsConnected.nonempty hUCon
