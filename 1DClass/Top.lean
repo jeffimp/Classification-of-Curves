@@ -272,8 +272,7 @@ lemma real_cover (φ ψ : PartialHomeomorph X ℝ) (hCover : φ.source ∪ ψ.so
                     have : ∀ (x : (φ.source ∩ ψ.source : Set X)), φ.symm (φ (x)) = x := by
                       intro x
                       apply φ.left_inv
-                      simp_all only [ne_eq, inter_eq_right, not_false_eq_true, mem_Iio, or_true, implies_true,
-                        invφ', A, ψ', T]
+                      simp_all only [ne_eq, inter_eq_right, not_false_eq_true, mem_Iio, or_true, implies_true]
                       obtain ⟨val, property⟩ := x
                       simp only
                       simp_all only [mem_inter_iff]
@@ -282,14 +281,12 @@ lemma real_cover (φ ψ : PartialHomeomorph X ℝ) (hCover : φ.source ∪ ψ.so
                     constructor
                     · rintro ⟨x, ⟨hxφ, hxψ⟩, rfl⟩
                       simp_all only [ne_eq, inter_eq_right, not_false_eq_true, mem_Iio, or_true, implies_true,
-                        Subtype.forall, mem_inter_iff, PartialHomeomorph.left_inv, and_self,
-                        invφ', A, ψ', T]
+                        Subtype.forall, mem_inter_iff, PartialHomeomorph.left_inv, and_self]
                     · intro hz
                       use z
                       refine and_assoc.mpr ?_
                       simp_all only [ne_eq, inter_eq_right, not_false_eq_true, mem_Iio, or_true, implies_true,
-                        Subtype.forall, mem_inter_iff, PartialHomeomorph.left_inv, and_self,
-                        invφ', A, ψ', T]
+                        Subtype.forall, mem_inter_iff, PartialHomeomorph.left_inv, and_self]
                   rw [this]
                   exact inter_subset_right
 
@@ -299,9 +296,12 @@ lemma real_cover (φ ψ : PartialHomeomorph X ℝ) (hCover : φ.source ∪ ψ.so
 
                 sorry
 
-              have : TopologicalSpace (Iio a) := by exact instTopologicalSpaceSubtype
-              have : TopologicalSpace (φ.symm '' Iio a) := by exact instTopologicalSpaceSubtype
+              -- have : TopologicalSpace (Iio a) := by exact instTopologicalSpaceSubtype
+              -- have : TopologicalSpace (φ.symm '' Iio a) := by exact instTopologicalSpaceSubtype
+
               -- obtain h := hψCont.comp hφCont
+              -- Issue with the range of the function
+
               sorry
 
             sorry

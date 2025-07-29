@@ -12,18 +12,57 @@ open Set Function Manifold
 /- Let M be a compact connected topological 1-dimensional manifold. -/
 variable (M : Type*) [TopologicalSpace M] [ConnectedSpace M] [CompactSpace M] [T2Space M] [ChartedSpace (EuclideanSpace ℝ (Fin 1)) M] [IsManifold (𝓡 1) 0 M]
 
+def euc1ToReal : EuclideanSpace ℝ (Fin 1) → ℝ := fun x => x 0
+
+def realToEuc1 : ℝ → EuclideanSpace ℝ (Fin 1) := fun r =>
+  WithLp.equiv 2 (Fin 1 → ℝ) |>.symm (fun _ => r)
+
+lemma euc1ToReal_realToEuc1 : Function.LeftInverse euc1ToReal realToEuc1 := by
+  intro r
+  simp [euc1ToReal, realToEuc1]
+
+lemma realToEuc1_euc1ToReal : Function.RightInverse euc1ToReal realToEuc1 := by
+  intro x
+  simp [euc1ToReal, realToEuc1]
+  ext i
+  fin_cases i
+  simp
+
+lemma euc1ToReal_continuous : Continuous euc1ToReal := by
+  -- The coordinate projection is continuous
+  exact continuous_apply 0
+
+lemma realToEuc1_continuous : Continuous realToEuc1 := by
+  -- This follows from continuity of the isometric equivalence and constant functions
+  apply Continuous.comp
+  · exact PiLp.continuous_toLp 2 fun i ↦ ℝ
+  · apply continuous_pi
+    intro i
+    exact continuous_id'
+
+def homeomorph_euclidean_real : (EuclideanSpace ℝ (Fin 1)) ≃ₜ ℝ := by
+  refine ⟨⟨euc1ToReal, realToEuc1, ?_, ?_⟩, euc1ToReal_continuous, realToEuc1_continuous⟩
+  · intro x
+    simp only [realToEuc1, euc1ToReal, Fin.isValue, WithLp.equiv_symm_apply]
+    ext i
+    fin_cases i
+    simp
+  · intro x
+    simp [euc1ToReal, realToEuc1]
+
 lemma chart_homeo_real : ∀ (x : M), Nonempty ((chartAt (EuclideanSpace ℝ (Fin 1)) x).source ≃ₜ ℝ) := by
   intro x
+  -- connected components of x
   let U := (chartAt (EuclideanSpace ℝ (Fin 1)) x).source
   let V := (chartAt (EuclideanSpace ℝ (Fin 1)) x).target
   have φ : U ≃ₜ V := (chartAt (EuclideanSpace ℝ (Fin 1)) x).toHomeomorphSourceTarget
   have hUV : Nonempty (U ≃ₜ V) := Nonempty.intro φ
   have hVOpen : IsOpen V := (chartAt (EuclideanSpace ℝ (Fin 1)) x).open_target
+  -- have : TopologicalSpace (EuclideanSpace ℝ (Fin 1)) := PiLp.topologicalSpace 2 fun x ↦ ℝ
   have h : (EuclideanSpace ℝ (Fin 1)) ≃ₜ ℝ := by
-    -- have h'' : AddCommGroup ℝ := by exact Real.instAddCommGroup
-    -- obtain h' := toEuclidean ℝ
-    sorry
+    exact homeomorph_euclidean_real
   have i : V ≃ₜ ℝ := by
+    -- tan / log
 
     sorry
   have φi : U ≃ₜ ℝ := φ.trans i
@@ -31,9 +70,13 @@ lemma chart_homeo_real : ∀ (x : M), Nonempty ((chartAt (EuclideanSpace ℝ (Fi
 
 /- If M is a connected compact one-dimensional manifold, then it has a finite cover where each
 open set in the cover is homeomorphic to ℝ. -/
-lemma finite_chart_cover' : ∃ (ι : Set M), (∃ (U : ι → Set M), (∀ (i : ι), IsOpen (U i) ∧ Nonempty (U i ≃ₜ ℝ)) ∧ univ ⊆ ⋃ i, U i) := by
+lemma finite_chart_cover' : ∃ (ι : Finset M), (∃ (U : ι → Set M), (∀ (i : ι), IsOpen (U i) ∧ Nonempty (U i ≃ₜ ℝ)) ∧ univ ⊆ ⋃ i, U i) := by
   have hCompact : IsCompact (univ : Set M) := CompactSpace.isCompact_univ
   obtain hChartCover := iUnion_source_chartAt (EuclideanSpace ℝ (Fin 1)) M
+  -- Cover by charts with connected domain
+  -- Finite cover
+  -- Image of charts in subcover
+  -- Homeomorphism of charts in subcover to ℝ last step
 
   sorry
 
@@ -88,9 +131,21 @@ that each union V_k = U_1 ∪ ⋯ ∪ U_k is connected. -/
 
 /- Every compact, connected, one-dimensional manifold without boundary is homeomorphic to the circle. -/
 theorem compact_connected_curve : Nonempty (M ≃ₜ Circle) := by
-  -- Find minimal cover (cover of size at least n): there must be 1-2
+  -- Find minimal cover (cover of size at least n): there must be 1-2 (minimality on cardinality map)
     -- If n = 1, contradiction - ℝ not compact.
     -- n ≥ 2 so there must be at least 2 sets that overlap because M connected
     -- Lemma says the union must be ℝ or circle - by minimality it's the circle.
     -- Circle clopen (closed by compactness open by union of open sets) - whole space M.
   sorry
+
+
+def DoubleSetoid (X : Type*) (Boundary : Set X) : Setoid (X × ({0, 1} : Set ℕ)) :=
+  let r (a b : X × ({0, 1} : Set ℕ)) := sorry
+  { r := r
+    iseqv := sorry}
+
+-- def ... Quotient
+-- Create instance and prove desired properties about manifold structure.
+-- classify 0-manifold as point
+
+-- Or instance Setoid (X × Bool)
