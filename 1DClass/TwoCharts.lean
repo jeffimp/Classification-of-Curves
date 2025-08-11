@@ -12,10 +12,125 @@ import «1DClass».RealClass
 open Set Function
 
 /- X is a connected Hausdorff space -/
-variable (X : Type*) [TopologicalSpace X] [ConnectedSpace X] [T2Space X]
+variable {X : Type*} [TopologicalSpace X]
+-- [ConnectedSpace X] [T2Space X]
+
+/-
+φ and ψ are homeomorphisms from an open subset of X to an open subset of ℝ.
+Note that throughout this document, we may refer to φ.source as U and ψ.source as V.
+-/
+-- variable {φ ψ : PartialHomeomorph X ℝ} (hCover : φ.source ∪ ψ.source = univ) (hφ : φ.target = univ) (hψ : ψ.target = univ)
+
+-- include hCover hφ hψ
+
+/-- Homeomorphism between X and ℝ in the trivial case where U ⊆ V. -/
+def trivialHomeo {φ ψ : PartialHomeomorph X ℝ} (hSub : φ.source ⊆ ψ.source) (hCover : φ.source ∪ ψ.source = univ) (hψ : ψ.target = univ) : X ≃ₜ ℝ := by
+  have hV : φ.source ∪ ψ.source = ψ.source := union_eq_self_of_subset_left hSub
+  rw [hV] at hCover
+  exact ψ.toHomeomorphOfSourceEqUnivTargetEqUniv hCover hψ
+
+/- The image of U ∩ V under φ is a proper set. -/
+lemma proper_image {φ ψ : PartialHomeomorph X ℝ} (hNSubφ : ¬φ.source ⊆ ψ.source) (hNSubψ : ¬ψ.source ⊆ φ.source) (hφ : φ.target = univ) : φ '' (φ.source ∩ ψ.source) ≠ univ := by
+  have hUVnV : φ.source ∩ ψ.source ≠ ψ.source := by
+          simp only [ne_eq, inter_eq_right]
+          exact hNSubψ
+  have hφU : φ '' (φ.source) = univ := by
+    have hφU' : φ '' (φ.source) = φ.target := PartialHomeomorph.image_source_eq_target φ
+    rw [hφ] at hφU'
+    exact hφU'
+  -- Specify domain and range!
+  have hφInj : InjOn φ (φ.source) := PartialHomeomorph.injOn φ
+  have hUVsubU : φ.source ∩ ψ.source ⊆ φ.source := inter_subset_left
+  have hφAInj : InjOn φ (φ.source ∩ ψ.source) := by exact InjOn.mono hUVsubU hφInj
+  have hProper : φ '' (φ.source ∩ ψ.source) ≠ φ '' (φ.source) := by
+    -- Use hUVnV and hφInj!
+    intro hC
+    have hC' : φ.source ∩ ψ.source = φ.source := by
+      apply (InjOn.image_eq_image_iff hφInj hUVsubU (subset_refl _)).mp
+      exact hC
+    have hC'' : φ.source ⊆ ψ.source := by
+      rw [← hC']
+      exact inter_subset_right
+    have hC''' : φ.source ∩ ψ.source = ψ.source := by
+      exact False.elim (hNSubφ hC'')
+    exact hUVnV hC'''
+  exact Ne.symm (Lean.Grind.ne_of_ne_of_eq_left (id (Eq.symm hφU)) (id (Ne.symm hProper)))
+
+/- U and V are connected. -/
+lemma connected_source {φ : PartialHomeomorph X ℝ} (hφ : φ.target = univ) : IsConnected φ.source := by
+  have hRCon : IsConnected (univ : Set ℝ) := isConnected_univ
+  have hφHomeo : Homeomorph φ.source φ.target := φ.toHomeomorphSourceTarget
+  have hφTCon : IsConnected φ.target := by
+    rw [hφ]
+    exact hRCon
+  have hφTCon' : ConnectedSpace φ.target := isConnected_iff_connectedSpace.mp hφTCon
+  have hφTCon'' : IsConnected (univ : Set φ.target) := isConnected_univ
+  have hφSCon : IsConnected (univ : Set φ.source) := (Homeomorph.isConnected_preimage (id hφHomeo.symm)).mp hφTCon''
+  have hφSCon' : ConnectedSpace φ.source := connectedSpace_iff_univ.mpr hφSCon
+  exact isConnected_iff_connectedSpace.mpr hφSCon'
+
+lemma image_real_class {φ ψ : PartialHomeomorph X ℝ} (hφ : φ.target = univ) (hNSubφ : ¬φ.source ⊆ ψ.source) (hNSubψ : ¬ψ.source ⊆ φ.source) :
+    ∀ x ∈ (φ '' (φ.source ∩ ψ.source)), (∃ a b, (connectedComponentIn (φ '' (φ.source ∩ ψ.source)) x) = Ioo a b) ∨ (∃ a, (connectedComponentIn (φ '' (φ.source ∩ ψ.source)) x) = Iio a) ∨ (∃ b, (connectedComponentIn (φ '' (φ.source ∩ ψ.source)) x) = Ioi b) := by
+  intro x hx
+  let Y := (connectedComponentIn (φ '' (φ.source ∩ ψ.source)) x)
+
+  have hYCon : IsConnected Y := by exact isConnected_connectedComponentIn_iff.mpr hx
+
+  have hYProper : Y ≠ univ := by
+    intro hC
+    have hYsubA : Y ⊆ (φ '' (φ.source ∩ ψ.source)) := connectedComponentIn_subset (φ '' (φ.source ∩ ψ.source)) x
+    rw [hC] at hYsubA
+    have hAUniv : (φ '' (φ.source ∩ ψ.source)) = univ := SurjOn.image_eq_of_mapsTo hYsubA fun ⦃x⦄ a ↦ trivial
+    exact proper_image hNSubφ hNSubψ hφ hAUniv
+
+  have hAOpen : IsOpen (φ '' (φ.source ∩ ψ.source)) := PartialHomeomorph.isOpen_image_source_inter φ ψ.open_source
+
+  have hYOpen : IsOpen Y := IsOpen.connectedComponentIn hAOpen
+
+  have hYNonempty : Y.Nonempty := by
+    refine connectedComponentIn_nonempty_iff.mpr ?_
+    exact hx
+
+  obtain hRC := real_class Y hYOpen hYCon
+  simp only [hYProper, or_false] at hRC
+
+  rcases hRC with (h1 | h2 | h3 )
+  · left ; exact h1
+  · right ; left ; exact h2
+  · right ; right ; exact h3
+
+lemma nonempty_source [ConnectedSpace X] {φ ψ : PartialHomeomorph X ℝ} (hCover : φ.source ∪ ψ.source = univ) (hφ : φ.target = univ) (hψ : ψ.target = univ) : (φ.source ∩ ψ.source).Nonempty := by
+  have hUNonempty : (φ.source).Nonempty := IsConnected.nonempty (connected_source hφ)
+  have hVNonempty : (ψ.source).Nonempty := IsConnected.nonempty (connected_source hψ)
+  by_contra hUVEmpty
+  have hUVEmpty' : φ.source ∩ ψ.source = ∅ := not_nonempty_iff_eq_empty.mp hUVEmpty
+  -- have hUVDisjoint : Disjoint φ.source ψ.source := disjoint_iff_inter_eq_empty.mpr hUVEmpty'
+  have hXCon : IsConnected (univ : Set X) := by (expose_names; exact connectedSpace_iff_univ.mp inst_1)
+  -- have hPrecon : IsPreconnected (univ : Set X) := hXCon.isPreconnected
+  rw [← hCover] at hXCon
+  -- rw [← hCover] at hPrecon
+  have hUnion : (φ.source ∪ ψ.source).Nonempty := by exact Nonempty.inr hVNonempty
+  -- We want to get a contradiction from the fact that φ.source and ψ.source are disjoint, yet it is preconnected AND not empty!
+  -- have hXnCon : ¬ IsConnected (φ.source ∪ ψ.source) := by
+  --   sorry
+  -- exact hXnCon hXCon
+  rw [IsConnected, IsPreconnected] at hXCon
+  obtain hXPrecon := hXCon.right φ.source ψ.source φ.open_source ψ.open_source fun ⦃a⦄ a ↦ a
+  have h₁ : ((φ.source ∪ ψ.source) ∩ φ.source).Nonempty := by
+    obtain ⟨x, hx⟩ := hUNonempty
+    exact ⟨x, ⟨Or.inl hx, hx⟩⟩
+  have h₂ : ((φ.source ∪ ψ.source) ∩ ψ.source).Nonempty := by
+    obtain ⟨x, hx⟩ := hVNonempty
+    exact ⟨x, ⟨Or.inr hx, hx⟩⟩
+  have hCon' : ¬ ((φ.source ∪ ψ.source) ∩ (φ.source ∩ ψ.source)).Nonempty := by
+    intro h
+    have : ((φ.source ∪ ψ.source) ∩ (φ.source ∩ ψ.source)) = ∅ := by
+      rw [hUVEmpty', inter_empty]
+    exact (not_nonempty_iff_eq_empty.mpr this) h
+  exact hCon' (hXPrecon h₁ h₂)
 
 /- If a connected Hausdorff space X can be represented as the union of two open subsets homeomorphic to ℝ, then X is homeomorphic to either ℝ or the sphere. -/
-lemma real_cover (φ ψ : PartialHomeomorph X ℝ) (hCover : φ.source ∪ ψ.source = univ)
+lemma real_cover [ConnectedSpace X] [T2Space X] (φ ψ : PartialHomeomorph X ℝ) (hCover : φ.source ∪ ψ.source = univ)
     (hφ : φ.target = univ) (hψ : ψ.target = univ) : Nonempty (Homeomorph X ℝ) ∨ Nonempty (Homeomorph X Circle) := by
 
   have hUOpen : IsOpen φ.source := φ.open_source
@@ -24,23 +139,13 @@ lemma real_cover (φ ψ : PartialHomeomorph X ℝ) (hCover : φ.source ∪ ψ.so
   by_cases hUV : φ.source ⊆ ψ.source
   · have hV : φ.source ∪ ψ.source = ψ.source := union_eq_self_of_subset_left hUV
     rw [hV] at hCover
-    -- have hHomVX : Homeomorph ψ.source X := by
-    --   rw [hCover]
-    --   exact Homeomorph.Set.univ X
     have hHomXReal : Homeomorph X ℝ := by
-      -- calc
-      --   X ≃ₜ (ψ.source) := by exact id hHomVX.symm
-      --   _ ≃ₜ (ψ.target) := by sorry
-      -- have hψst : ψ.source ≃ₜ ψ.target := by exact ψ.toHomeomorphSourceTarget
       exact ψ.toHomeomorphOfSourceEqUnivTargetEqUniv hCover hψ
     apply Or.inl
     exact Nonempty.intro hHomXReal
   · by_cases hVU : ψ.source ⊆ φ.source
     · have hU : φ.source ∪ ψ.source = φ.source := union_eq_self_of_subset_right hVU
       rw [hU] at hCover
-      -- have hHomUX : Homeomorph φ.source X := by
-      --   rw [hCover]
-      --   exact Homeomorph.Set.univ X
       have hHomXReal : Homeomorph X ℝ := φ.toHomeomorphOfSourceEqUnivTargetEqUniv hCover hφ
       apply Or.inl
       exact Nonempty.intro hHomXReal
@@ -68,7 +173,7 @@ lemma real_cover (φ ψ : PartialHomeomorph X ℝ) (hCover : φ.source ∪ ψ.so
         -- Specify domain and range!
         have hφInj : InjOn φ (φ.source) := PartialHomeomorph.injOn φ
         have hUVsubU : φ.source ∩ ψ.source ⊆ φ.source := inter_subset_left
-        have hφAInj : InjOn φ (φ.source ∩ ψ.source) := by exact InjOn.mono hUVsubU hφInj
+        have hφAInj : InjOn φ (φ.source ∩ ψ.source) := InjOn.mono hUVsubU hφInj
         have hProper : φ '' (φ.source ∩ ψ.source) ≠ φ '' (φ.source) := by
           -- Use hUVnV and hφInj!
           intro hC
