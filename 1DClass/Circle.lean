@@ -51,10 +51,13 @@ lemma chart_cover : ∃ (ι : Set M), (∃ (U : ι → Set M), (∀ (i : ι), Is
 -- lemma fin_cover : ∃ (t : Finset (Set M)), (∃ (U : t → Set M), (∀ (i : t), IsOpen (U i) ∧ Nonempty (U i ≃ₜ ℝ)) ∧ univ ⊆ ⋃ i, U i) := by
 --   sorry
 
+/- If two sets in M are homeomorphic to ℝ but their union is not homeomorphic to ℝ, then M is homeomorphic to the circle. -/
+lemma circle_union (U V : Set M) (hOverlap : (U ∩ V).Nonempty) (φ : U ≃ₜ ℝ) (ψ : V ≃ₜ ℝ) (h : ¬ Nonempty ({x // x ∈ (U ∪ V)} ≃ₜ ℝ)) : Nonempty (M ≃ₜ Circle) := by sorry
+
 /--
 A compact, connected, 1-dimensional manifold is homeomorphic to the circle.
 -/
-theorem compact_connected_one_manifold_is_circle : Nonempty (M ≃ₜ Circle) := by
+theorem compact_connected_one_manifold_is_circle [DecidableEq (Set M)] : Nonempty (M ≃ₜ Circle) := by
   -- M cannot be homeomorphic to ℝ.
   -- A homeomorphism preserves compactness. M is compact, but ℝ is not.
   have hNReal : ¬ Nonempty (M ≃ₜ ℝ) := by
@@ -78,17 +81,14 @@ theorem compact_connected_one_manifold_is_circle : Nonempty (M ≃ₜ Circle) :=
     -- Assume for contradiction that t.card < 2.
     by_contra htCard2
     -- Since M is non-empty, t cannot be empty, so t.card = 1.
-
     have htNemp : Nonempty t := by
       obtain ⟨x, hx⟩ := exists_mem_of_nonempty M
       have hx_cover : x ∈ ⋃ (i : ι) (hi : i ∈ (t : Finset ι)), U i := h hx
       rw [mem_iUnion] at hx_cover
       aesop
-
     have htCard1 : t.card = 1 := by
       have : 0 < t.card := Finset.card_pos.mpr (Finset.nonempty_coe_sort.mp htNemp)
       linarith
-
     -- Since t had cardinality 1, there exists some x such that M ⊆ U x.
     have hxCover : ∃ x, univ ⊆ U x := by
       obtain ⟨x, hx⟩ := Finset.card_eq_one.1 htCard1
@@ -99,14 +99,6 @@ theorem compact_connected_one_manifold_is_circle : Nonempty (M ≃ₜ Circle) :=
       rw [hx] at hyCover
       simp only [Finset.mem_singleton, iUnion_iUnion_eq_left] at hyCover
       exact hyCover
-      -- obtain x := htNemp.some
-      -- have hx : univ ⊆ U x := by
-      --   intro y hy
-      --   obtain hy' := h (mem_univ y)
-      --   have hx' : ⋃ i ∈ t, U i = U x := by
-      --     -- ext z
-      --     -- constructor
-
     -- This implies that M is homeomorphic to ℝ → contradiction!
     have hmRHom : Nonempty (M ≃ₜ ℝ) := by
       obtain ⟨x, hx⟩ := hxCover
@@ -122,11 +114,93 @@ theorem compact_connected_one_manifold_is_circle : Nonempty (M ≃ₜ Circle) :=
         exact Homeomorph.refl _
       let φ₃ : U x ≃ₜ ℝ := hx'.some
       exact ⟨φ₁.trans (φ₂.trans φ₃)⟩
-
     exact hNReal hmRHom
 
+  -- Existence of minimal cover
+  have hMin : ∃ (s : Finset ι), ((∀ (i : s), IsOpen (U i)) ∧ univ ⊆ ⋃ i, U i) ∧
+      (∀ (s' : Finset ι), ((∀ (i : s'), IsOpen (U i)) ∧ univ ⊆ ⋃ i ∈ s', U i) → s.card ≤ s'.card) := by
+    let P := fun (s : Finset ι) => (∀ i ∈ s, IsOpen (U i)) ∧ univ ⊆ ⋃ i ∈ s, U i
+    have hex : ∃ n, ∃ s, s.card = n ∧ P s :=
+      ⟨t.card, ⟨t, rfl, ⟨fun i hi => hUOpen i, h⟩⟩⟩
+    -- Nat.find requires a DecidablePred on ℕ; provide it classically
+    haveI : DecidablePred fun n => ∃ s, s.card = n ∧ P s := fun n => Classical.dec _
+    -- Pick the least n for which there exists s with card = n and P s
+    let n := Nat.find hex
+    obtain ⟨s, hs_card, hsP⟩ := Nat.find_spec hex
+    -- Prove minimality against any other candidate s'
+    have hnMin : ∀ (s' : Finset ι), ((∀ (i : s'), IsOpen (U i)) ∧ univ ⊆ ⋃ i ∈ s', U i) → n ≤ s'.card := by
+      intro s' hs'
+      have : P s' := ⟨fun i hi => hs'.1 ⟨i, hi⟩, hs'.2⟩
+      by_contra hlt
+      have : ∃ m, (∃ (s : Finset ι), s.card = m ∧ P s) := ⟨s'.card, ⟨s', rfl, this⟩⟩
+      aesop
+    use s
+    constructor
+    · exact And.imp_left (fun a i ↦ hUOpen ↑i) h₂
+    · intro s' hs'
+      have hn_le : n ≤ s'.card := by
+        exact hnMin s' hs'
+      exact le_of_eq_of_le hs_card hn_le
+
+  obtain ⟨s, hs, hsMin⟩ := hMin
+  -- Lemma Nonempty cover
+  have hsNonemp: Nonempty s := by sorry
+
+  have hOverlap : ∃ (i j : s), i ≠ j ∧ (U i ∩ U j).Nonempty := by
+    -- n ≥ 2 so there must be at least 2 sets that overlap because M connected
+    contrapose! h
+    -- let k := hsNonemp.some
+    -- let V := U k
+    -- haveI : DecidablePred fun x => x ≠ k := fun n => Classical.dec _
+    -- -- let W := ⋃ i ∈ {x ∈ s | x ≠ k}
+    have hMCon: IsConnected (univ : Set M) := by (expose_names; exact connectedSpace_iff_univ.mp inst_1)
+    haveI : DecidablePred fun x ↦ ∃ i, U ↑i = x := fun x => Classical.dec _
+    -- let U' : (Finset (Set M)) := {U i | i ∈ s}
+    obtain h1 := isConnected_iff_sUnion_disjoint_open.mp hMCon (Finset.image U s)
+    simp only [univ_subset_iff] at hs h1 ⊢
+    exfalso
+    have h2 : (∀ (u v : Set M), u ∈ Finset.image U s → v ∈ Finset.image U s → (univ ∩ (u ∩ v)).Nonempty → u = v) := by
+      intro u v hu hv
+      simp [univ_inter]
+      obtain ⟨a, ha₁, ha₂⟩ := Finset.mem_image.mp hu
+      obtain ⟨b, hb₁, hb₂⟩ := Finset.mem_image.mp hv
+      rw [← ha₂, ← hb₂]
+      intro hIE
+      have hab : a = b := by
+        obtain hab1 := h ⟨a, ha₁⟩ ⟨b, hb₁⟩
+        by_contra hanb
+        have : (⟨a, ha₁⟩ : s) ≠ ⟨b, hb₁⟩ := by grind
+        apply hab1 at this
+        rw [nonempty_iff_ne_empty] at hIE
+        exact hIE this
+      exact congrArg U hab
+    apply h1 at h2
+    have h3 : (∀ u ∈ Finset.image U s, IsOpen u) := by
+      intro u hu
+      obtain ⟨a, ha₁, ha₂⟩ := Finset.mem_image.mp hu
+      have : IsOpen (U a) := hUOpen a
+      rwa [ha₂] at this
+    apply h2 at h3
+    have h4 : ⋃₀ (Finset.image U s).toSet = univ := by sorry
+    apply h3 at h4
+    obtain ⟨u, ⟨hu, hv⟩⟩ := h4
+    obtain ⟨a, ha₁, ha₂⟩ := Finset.mem_image.mp hu
+    have h5 : Nonempty (U a ≃ₜ ℝ) := by exact (h₂.1 a).2
+    rw [ha₂, hv] at h5
+    have hReal : Nonempty (M ≃ₜ ℝ) := Nonempty.intro (((Homeomorph.Set.univ M).symm).trans h5.some)
+    exact hNReal hReal
+
+  obtain ⟨i, j, hij₁, hij₂⟩ := hOverlap
+
+  -- Stating (U i ∪ U j) ≃ₜ Circle leads to error failed to synthesize Union (Type u_1)
+  let C := (U i ∪ U j)
+
+  have hCircle : C ≃ₜ Circle := by
+    sorry
 
 
+  -- Lemma says the union must be ℝ or circle - by minimality it's the circle.
+  -- Circle clopen (closed by compactness open by union of open sets) - whole space M.
   sorry
 
 noncomputable section

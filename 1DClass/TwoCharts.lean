@@ -129,6 +129,85 @@ lemma nonempty_source [ConnectedSpace X] {φ ψ : PartialHomeomorph X ℝ} (hCov
     exact (not_nonempty_iff_eq_empty.mpr this) h
   exact hCon' (hXPrecon h₁ h₂)
 
+def Overlap {φ ψ : PartialHomeomorph X ℝ} : Set X := φ.source ∩ ψ.source
+
+def Tφ' {φ ψ : PartialHomeomorph X ℝ} : φ '' Overlap → {x // x ∈ Overlap} :=
+  fun ⟨y, hy⟩ => ⟨(φ.symm y), by
+    -- proof that ψ (φ.symm y) ∈ ψ '' (φ.source ∩ ψ.source)
+    aesop⟩
+
+def Transition [ConnectedSpace X] {φ ψ : PartialHomeomorph X ℝ} (hCover : φ.source ∪ ψ.source = univ) (hφ : φ.target = univ) (hψ : ψ.target = univ) := (φ.subtypeRestr (Set.Nonempty.to_type (nonempty_source hCover hφ hψ))).symm.trans (ψ.subtypeRestr (φ.source ∩ ψ.source))
+
+-- lemma continuous_trans {φ ψ : PartialHomeomorph X ℝ} : Continuous (Tφ' : φ '' (φ.source ∩ ψ.source) → ψ '' (φ.source ∩ ψ.source)) := by
+--   -- The key insight is that Tφ' is the restriction of the continuous map ψ ∘ φ.symm
+--   -- to the appropriate subsets
+--   sorry
+
+def Tφ [ConnectedSpace X] (a b : ℝ) {φ ψ : PartialHomeomorph X ℝ} (hCover : φ.source ∪ ψ.source = univ)
+    (hφ : φ.target = univ) (hψ : ψ.target = univ) (hA : φ '' (φ.source ∩ ψ.source) = Iio a) (hB : ψ '' (φ.source ∩ ψ.source) = Ioi b) : {x // x ∈ Iio a} → {y // y ∈ φ.source ∧ y ∈ ψ.source} :=
+  fun x => ⟨((Iio a).restrict φ.symm) x, by
+  constructor
+  · simp_all only [restrict_apply, mem_univ, PartialHomeomorph.map_target]
+  · have : (Iio a).restrict (↑φ.symm) x ∈ ψ.source := by
+      have h1 : x.val ∈ φ '' (φ.source ∩ ψ.source) := by
+        rw [hA]
+        exact Subtype.coe_prop x
+      -- So there exists some y ∈ φ.source ∩ ψ.source such that φ y = x.val
+      obtain ⟨y, hy_mem, hy_eq⟩ := h1
+      -- We have φ.symm (x.val) = φ.symm (φ y) = y (since y ∈ φ.source)
+      have h2 : φ.symm x.val = y := by
+        rw [← hy_eq]
+        refine PartialHomeomorph.left_inv φ ?_
+        exact mem_of_mem_inter_left hy_mem
+      -- Therefore φ.symm x.val ∈ ψ.source since y ∈ ψ.source
+      subst h2
+      exact hy_mem.2
+    exact this
+  ⟩
+
+/- Transition function continuous on reasonable domain. -/
+lemma continuous_transition [ConnectedSpace X] (a b : ℝ) {φ ψ : PartialHomeomorph X ℝ} (hCover : φ.source ∪ ψ.source = univ)
+    (hφ : φ.target = univ) (hψ : ψ.target = univ) (hA : φ '' (φ.source ∩ ψ.source) = Iio a) (hB : ψ '' (φ.source ∩ ψ.source) = Ioi b) : Continuous ((Iio a).restrict (ψ ∘ φ.symm)) := by
+  have hψCont : Continuous ((φ.symm '' (Iio a)).restrict ψ) := by
+    refine ContinuousOn.restrict ?_
+    have ψCont' : ContinuousOn ψ (ψ.source) := PartialHomeomorph.continuousOn ψ
+    have : (↑φ.symm '' Iio a) ⊆ ψ.source := by
+      rw [← hA]
+      have : φ.symm '' (φ '' (φ.source ∩ ψ.source)) = φ.source ∩ ψ.source := by
+        have : ∀ (x : (φ.source ∩ ψ.source : Set X)), φ.symm (φ (x)) = x := by
+          intro x
+          apply φ.left_inv
+          -- simp_all only [ne_eq, inter_eq_right, not_false_eq_true, mem_Iio, or_true, implies_true]
+          obtain ⟨val, property⟩ := x
+          simp only
+          exact mem_of_mem_inter_left property
+        ext z
+        simp only [mem_image, mem_inter_iff, exists_exists_and_eq_and]
+        constructor
+        · rintro ⟨x, ⟨hxφ, hxψ⟩, rfl⟩
+          aesop
+        · intro hz
+          use z
+          refine and_assoc.mpr ?_
+          aesop
+      rw [this]
+      exact inter_subset_right
+
+    exact ContinuousOn.mono ψCont' this
+
+  have hφCont : Continuous ((Iio a).restrict φ.symm) := by
+    refine ContinuousOn.restrict ?_
+    have φCont' : ContinuousOn φ.symm φ.target := PartialHomeomorph.continuousOn_symm φ
+    have : Iio a ⊆ φ.target := by
+      rw [← hA]
+      aesop
+    exact ContinuousOn.mono φCont' this
+
+  -- I would like to use obtain h := hψCont.comp hφCont, but it fails,
+  -- which I assume is due to the fact that Lean needs the range of the first function in the composition
+  -- to be equal to the domain of the second function in the composition.
+  sorry
+
 /- If a connected Hausdorff space X can be represented as the union of two open subsets homeomorphic to ℝ, then X is homeomorphic to either ℝ or the sphere. -/
 lemma real_cover [ConnectedSpace X] [T2Space X] (φ ψ : PartialHomeomorph X ℝ) (hCover : φ.source ∪ ψ.source = univ)
     (hφ : φ.target = univ) (hψ : ψ.target = univ) : Nonempty (Homeomorph X ℝ) ∨ Nonempty (Homeomorph X Circle) := by
